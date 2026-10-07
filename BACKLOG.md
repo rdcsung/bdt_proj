@@ -20,6 +20,9 @@ Repos involved:
 
 Status: `[x]` done · `[ ]` open · `[~]` in progress
 
+Agents work from the phase briefs in [`docs/briefs/`](docs/briefs/) under the
+rules in [`AGENTS.md`](AGENTS.md).
+
 ## Use cases at a glance
 
 | # | Use case | What you build | Difficulty | Value |
@@ -82,8 +85,10 @@ capacity directly. The NASA capacity measurement is the ground truth.
   (e.g. leave-one-battery-out), not random cycles, to avoid leakage.
 - [ ] **BT-203 Baseline SOH model.** Gradient boosting / linear baseline on
   BT-201 features. Report MAE/RMSE per held-out battery.
-- [ ] **BT-204 Deep learning SOH model.** 1D CNN / LSTM on the raw curves;
-  compare against BT-203.
+- [ ] **BT-204 Stronger SOH model.** Interpretable first (random forest /
+  gradient boosting) and compared against the baseline. Deep learning
+  (1D CNN / LSTM on the raw curves) only later, if the simpler model
+  falls short.
 - [ ] **BT-205 Training as a pipeline.** Airflow DAG that builds features,
   trains, evaluates and stores the model artefact + metrics in MinIO.
 - [ ] **BT-206 Serve predictions.** Backend endpoint returning predicted SOH
