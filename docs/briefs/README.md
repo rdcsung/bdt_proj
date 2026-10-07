@@ -7,7 +7,7 @@ when** (checked only after verifying).
 
 | Brief | Backlog | Status |
 |---|---|---|
-| [Phase 1: NASA SOH data → dashboard](phase-1-soh-data.md) | BT-102 – BT-105 | ready |
+| [Phase 1: NASA SOH data → dashboard](phase-1-soh-data.md) | BT-102 – BT-105 | ready, decisions D1–D3 agreed |
 | [Phase 2: SOH model, actual vs predicted](phase-2-soh-model.md) | BT-201 – BT-206 | ready after phase 1 |
 | Phase 3: RUL and degradation forecast | BT-301 – BT-305 | to write |
 | Phase 4: Anomaly detection | BT-401 – BT-403 | to write |

@@ -77,19 +77,20 @@ Verify each of these against the data; correct this brief if any are wrong.
 - Reuse the existing chart components and theme. `npm test` and
   `npm run build` must pass.
 
-## Decisions needed (ask before implementing)
+## Decisions (agreed 2026-10-07)
 
-- **D1 Initial capacity.** First discharge cycle, mean of the first N, or
-  rated 2.0 Ah? Proposal: mean of the first 3 discharge cycles, stored
-  as a parameter.
-- **D2 API shape.** New `/api/batteries/...` routes beside
-  `/api/vehicles`, or map NASA batteries onto the vehicle model?
-  Proposal: new routes; the data doesn't fit the vehicle shape
-  (no odometer, trips or charging sessions).
-- **D3 How the backend gets gold data.** Read from MinIO at startup with
-  a read-only key (new secret in `bdt-gitops`), or export a snapshot into
-  the image at build time? Proposal: MinIO, read-only credentials scoped to
-  `gold/`.
+- **D1 Initial capacity:** mean of the first 3 discharge cycles per
+  battery. The window size (3) is a parameter of the SOH function, not a
+  constant buried in it.
+- **D2 API shape:** new `/api/batteries/...` routes beside
+  `/api/vehicles`, which stay as they are. NASA data doesn't fit the
+  vehicle shape (no odometer, trips or charging sessions).
+- **D3 Gold data access:** the backend reads the gold table from MinIO
+  with read-only credentials scoped to `gold/`. The credentials are a
+  Kubernetes secret created out of band (never in Git); `bdt-gitops`
+  only references it. Bucket/prefix/endpoint are config. Creating the
+  MinIO user and policy is a manual step on odin; document it in
+  `bdt-infra/docs/minio.md`, and ask the owner before running it.
 
 ## Done when
 
