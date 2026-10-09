@@ -188,6 +188,20 @@ Goal: natural-language analysis on top of the twin. Only after Phases 2–4 work
 
 ---
 
+## Platform
+
+- [x] **PL-1 Secrets in Vault.** Hand-made Kubernetes Secrets (15) stored
+  in Vault and synced by External Secrets Operator (`bdt-gitops` README,
+  `bdt-infra/docs/vault-secrets.md`). Done 2026-10-09: fingerprints
+  unchanged, no pod restarts.
+- [ ] **PL-2 Vault backups.** Vault (file storage, local-path PVC on odin)
+  is now the source of truth for those Secrets and has no backup. Move to
+  integrated storage (Raft) and take nightly `vault operator raft snapshot`
+  to MinIO or thor; test a restore.
+- [ ] **PL-3 Airflow connections from Vault.** The `minio_s3` connection
+  (read-write MinIO key) lives in Airflow's DB; use Airflow's Vault
+  secrets backend instead.
+
 ## Ideas / later
 
 - Other data sets beside NASA under the same `bdt-lake` layout (other PCoE
