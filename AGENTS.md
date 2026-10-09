@@ -85,6 +85,20 @@ Stop and ask the owner (Gordon) before:
 Pushing branches and opening PRs on `bdt_pipeline`, `bdt` and `bdt_proj`
 is fine.
 
+## Keep the platform map current
+
+[`docs/architecture.html`](docs/architecture.html) is the interactive map
+of every component, host, URL, Secret, Vault path and repo relation. Its
+facts live in the `MODEL` block at the top of its script.
+
+- Any change that adds, removes or reconfigures a component, host, URL,
+  port, Secret or Vault path, pipeline step, or repo relation **updates
+  `MODEL` in the same change** (or the matching `bdt_proj` PR if the
+  change is in another repo).
+- Bump `MODEL.updated` and add a `MODEL.changelog` line.
+- Facts only, checked against the repos or the cluster. Never secret
+  values.
+
 ## Git
 
 - Small commits, one logical change each, Conventional Commit style:
