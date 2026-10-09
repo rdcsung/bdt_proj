@@ -47,20 +47,26 @@ Goal: the dashboard shows real NASA batteries with measured SOH and its history.
 - [x] **BT-101 Ingest NASA data to bronze.** `nasa_battery_ingest` DAG in
   `bdt_pipeline`: download → extract → `.mat` to Parquet (`cycles`,
   `timeseries`, `impedance`) in `s3://bdt-lake/bronze/nasa_pcoe_battery/`.
-- [ ] **BT-102 Silver layer.** Clean and deduplicate bronze (B0025–B0028
+- [~] **BT-102 Silver layer.** Clean and deduplicate bronze (B0025–B0028
   appear twice in the archive), normalise units/types, one row per battery
   per cycle plus the per-cycle timeseries. Write to `silver/`.
-- [ ] **BT-103 SOH ground truth.** From the discharge capacity per cycle,
-  compute `SOH = capacity / initial capacity`. Output dataset:
-  `battery_id, cycle, capacity, soh, ambient_temp, ...` in `gold/`.
-  - Acceptance: per-battery SOH curve starts at ~1.0, EOL cycle derivable
-    at the 70 % / 1.4 Ah threshold used by NASA.
-- [ ] **BT-104 Backend reads NASA data.** Add a data source to `bdt` backend
-  that reads the gold SOH dataset from MinIO alongside (or instead of) the
-  synthetic generator. Endpoints: list batteries, SOH history per battery.
-- [ ] **BT-105 Battery Twin card in the dashboard.** Per battery: current
+  *`nasa_battery_transform` DAG plus data-quality flags; verified in the
+  Airflow 3.2.2 image against a local MinIO, not yet run on the cluster.*
+- [~] **BT-103 SOH ground truth.** From the discharge capacity per cycle,
+  compute `SOH = capacity / rated capacity (2.0 Ah)` (decision D1).
+  Output: `gold/…/soh` and `gold/…/batteries`, see
+  [data dictionary](docs/data-dictionary.md).
+  - Acceptance: EOL derivable at NASA's thresholds (1.4 Ah = 70 %,
+    1.6 Ah = 80 %). *Revised: curves start at measured/rated (B0005 ≈ 93 %),
+    not ~1.0.* Same verification status as BT-102.
+- [~] **BT-104 Backend reads NASA data.** `/api/batteries` routes in `bdt`
+  reading the gold tables from MinIO with a read-only key. *Verified
+  locally over S3 with the read-only policy; not deployed.*
+- [~] **BT-105 Battery Twin card in the dashboard.** Per battery: current
   SOH, SOH bar, trend (%/cycle over the last N cycles), degradation
-  history chart.
+  history chart. *"NASA test cells" view; verified in a local browser
+  render against real data; not deployed. "Remaining life" waits for
+  Phase 3 (RUL).*
 
 ```
 ┌──────────────────────────────────┐
