@@ -47,26 +47,27 @@ Goal: the dashboard shows real NASA batteries with measured SOH and its history.
 - [x] **BT-101 Ingest NASA data to bronze.** `nasa_battery_ingest` DAG in
   `bdt_pipeline`: download → extract → `.mat` to Parquet (`cycles`,
   `timeseries`, `impedance`) in `s3://bdt-lake/bronze/nasa_pcoe_battery/`.
-- [~] **BT-102 Silver layer.** Clean and deduplicate bronze (B0025–B0028
+- [x] **BT-102 Silver layer.** Clean and deduplicate bronze (B0025–B0028
   appear twice in the archive), normalise units/types, one row per battery
   per cycle plus the per-cycle timeseries. Write to `silver/`.
-  *`nasa_battery_transform` DAG plus data-quality flags; verified in the
-  Airflow 3.2.2 image against a local MinIO, not yet run on the cluster.*
-- [~] **BT-103 SOH ground truth.** From the discharge capacity per cycle,
+  *`nasa_battery_transform` DAG plus data-quality flags. Ran on the
+  cluster 2026-10-09 on `ingest_date=2026-10-07`: 37/37 tasks succeeded.*
+- [x] **BT-103 SOH ground truth.** From the discharge capacity per cycle,
   compute `SOH = capacity / rated capacity (2.0 Ah)` (decision D1).
   Output: `gold/…/soh` and `gold/…/batteries`, see
   [data dictionary](docs/data-dictionary.md).
   - Acceptance: EOL derivable at NASA's thresholds (1.4 Ah = 70 %,
     1.6 Ah = 80 %). *Revised: curves start at measured/rated (B0005 ≈ 93 %),
-    not ~1.0.* Same verification status as BT-102.
-- [~] **BT-104 Backend reads NASA data.** `/api/batteries` routes in `bdt`
-  reading the gold tables from MinIO with a read-only key. *Verified
-  locally over S3 with the read-only policy; not deployed.*
+    not ~1.0.* Gold written on the cluster with BT-102's run.
+- [x] **BT-104 Backend reads NASA data.** `/api/batteries` routes in `bdt`
+  reading the gold tables from MinIO with a read-only key. *Deployed to
+  dev (cf19aef); the dev pod serves 34 batteries from the cluster's gold
+  snapshot; unauthenticated requests get 403.*
 - [~] **BT-105 Battery Twin card in the dashboard.** Per battery: current
   SOH, SOH bar, trend (%/cycle over the last N cycles), degradation
-  history chart. *"NASA test cells" view; verified in a local browser
-  render against real data; not deployed. "Remaining life" waits for
-  Phase 3 (RUL).*
+  history chart. *"NASA test cells" view, deployed to dev (cf19aef).
+  Checked in headless renders locally; a logged-in check in dev is still
+  pending. "Remaining life" waits for Phase 3 (RUL).*
 
 ```
 ┌──────────────────────────────────┐

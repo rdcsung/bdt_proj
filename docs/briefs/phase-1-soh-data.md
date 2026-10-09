@@ -115,20 +115,22 @@ NASA zip, plus the per-group README files in `raw/`).
 
 ## Done when
 
-- [~] Silver and gold DAG runs succeed in Airflow on the current bronze
+- [x] Silver and gold DAG runs succeed in Airflow on the current bronze
   snapshot; data-quality task output visible; re-run gives identical output.
   *Done in the `apache/airflow:3.2.2` image against a local Silo/MinIO
   loaded with bronze rebuilt from the NASA zip (2026-10-09): all 37 tasks
-  succeeded twice, outputs identical. Cluster run pending deploy.*
+  succeeded twice, outputs identical. Cluster run 2026-10-09 on
+  `ingest_date=2026-10-07`: 37/37 tasks succeeded.*
 - [x] `uv run pytest` passes in `bdt_pipeline` (24) and `bdt/backend` (20);
   new logic has unit tests (SOH calculation, dedup, quality checks).
   `npm test` (14) and `npm run build` pass in `bdt/frontend`.
-- [~] API returns real NASA SOH for every battery; verified with real
+- [x] API returns real NASA SOH for every battery; verified with real
   requests against a locally running backend. *Done (34 batteries, over
   S3 with the read-only policy); auth bypassed locally since login needs
   Keycloak/Google.*
 - [~] Dashboard shows it; verified in a browser locally. *Headless Chromium
   renders of B0005, B0042, B0049 with real data; Keycloak stubbed.*
-- [ ] Deployed to **dev only** after the owner approves the `bdt-gitops`
-  change (D3 adds config there).
+- [x] Deployed to **dev only** after the owner approves the `bdt-gitops`
+  change (D3 adds config there). *dev runs cf19aef with the read-only
+  key (now synced from Vault); qa/prod unchanged.*
 - [x] Data dictionary written; backlog items BT-102–BT-105 updated.
