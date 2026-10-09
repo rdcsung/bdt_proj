@@ -27,14 +27,27 @@ From the bronze schemas in `bdt_pipeline/dags/nasa_battery/convert.py`:
 - 38 files, 34 batteries: **B0025–B0028 appear twice** with identical
   sizes; keep one copy in silver and log which.
 - Test conditions differ between battery groups (ambient temperature,
-  discharge current, cut-off voltage). Several groups stop before reaching
-  end of life; some have only a few dozen cycles. The 1.4 Ah (30 % fade)
-  end-of-life threshold in NASA's README applies to the first group
-  (B0005–B0018), not to all.
+  discharge current/profile, cut-off voltage), and **within** some
+  batteries: B0038–B0044 switch between 4/22/24/44 °C and 1/2/4 A loads.
+  Capacity measured at 4 °C or 4 A is much lower without the cell being
+  more aged, so only cycles at the same conditions are comparable.
+- NASA defines end of life against the **rated 2.0 Ah**: 1.4 Ah (30 %
+  fade) for B0005–B0018, B0041–B0048, B0053–B0056; 1.6 Ah (20 % fade) for
+  B0033–B0040. B0025–B0032 and B0049–B0052 have none (49–52 ended when
+  the test software crashed).
+- Bad discharges are common outside the first group: capacities of
+  0.0, ~0.05 Ah, or null (B0052 has a value for 4 of 25), early cycles far
+  below the rest (B0033 starts 0.07, 0.69, 1.16 Ah), and values above
+  rated (B0036 2.44 Ah, B0049–B0051 up to 2.64 Ah). NASA's README: "several
+  discharge runs where the capacity was very low. Reasons … not fully
+  analyzed."
+- Clean single-condition runs: B0005/6/7/18 (132–168 discharges), B0036
+  (197), B0025–B0028 (28 each), B0029–B0032 (40 each, 43 °C).
 - Capacity can rise for a few cycles (recovery after rest periods). This
   is physical behaviour, not bad data.
 
-Verify each of these against the data; correct this brief if any are wrong.
+Checked against the data on 2026-10-09 (bronze rebuilt locally from the
+NASA zip, plus the per-group README files in `raw/`).
 
 ## Work
 
@@ -54,8 +67,10 @@ Verify each of these against the data; correct this brief if any are wrong.
 ### BT-103 Gold SOH table (`bdt_pipeline`)
 
 - `gold/nasa_pcoe_battery/soh/`: one row per battery × discharge cycle with
-  `battery_id, discharge_index, cycle_index, capacity_ah,
-  initial_capacity_ah, soh, ambient_temperature_c, test_group`.
+  `battery_id, discharge_index, cycle_index, capacity_ah, soh,
+  ambient_temperature_c, mean_current_a, test_group, capacity_flag,
+  soh_valid`, plus a per-battery table (test group, conditions, EOL
+  threshold, counts, latest valid SOH). All batteries, flagged per D7.
 - SOH definition lives in one function with its parameters explicit (see
   decision D1); not inside any later model code.
 - Write the data dictionary to `bdt_proj/docs/data-dictionary.md`:
@@ -77,11 +92,13 @@ Verify each of these against the data; correct this brief if any are wrong.
 - Reuse the existing chart components and theme. `npm test` and
   `npm run build` must pass.
 
-## Decisions (agreed 2026-10-07)
+## Decisions (agreed 2026-10-07, D1 revised and D7 added 2026-10-09)
 
-- **D1 Initial capacity:** mean of the first 3 discharge cycles per
-  battery. The window size (3) is a parameter of the SOH function, not a
-  constant buried in it.
+- **D1 SOH basis:** `SOH = capacity_ah / 2.0 Ah` (rated capacity), as a
+  parameter of the SOH function. Matches NASA's EOL definitions (1.4 Ah =
+  70 %, 1.6 Ah = 80 %); new cells start below 100 % (B0005 ≈ 93 %).
+  *Originally "mean of the first 3 discharges"; dropped because bogus
+  early discharges give SOH far above 100 % for about half the batteries.*
 - **D2 API shape:** new `/api/batteries/...` routes beside
   `/api/vehicles`, which stay as they are. NASA data doesn't fit the
   vehicle shape (no odometer, trips or charging sessions).
@@ -91,6 +108,10 @@ Verify each of these against the data; correct this brief if any are wrong.
   only references it. Bucket/prefix/endpoint are config. Creating the
   MinIO user and policy is a manual step on odin; document it in
   `bdt-infra/docs/minio.md`, and ask the owner before running it.
+- **D7 Scope:** all batteries, with quality flags. Each discharge cycle
+  is flagged (ok, missing, zero, very low, above rated, inconsistent,
+  off the battery's reference condition); charts plot valid cycles only,
+  and each battery shows whether it's a clean single-condition run.
 
 ## Done when
 
