@@ -1,0 +1,692 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BDT Platform Map</title>
+<meta name="description" content="Interactive map of the Battery Digital Twin platform: infrastructure components, how they connect, their key settings, and how the five repositories relate.">
+<style>
+  /* Keep this page current: see "How to update" at the bottom of the
+     script and the rule in AGENTS.md. Facts live in MODEL below. */
+  :root {
+    --bg: #f7f7f4; --surface: #ffffff; --surface-2: #f0efea; --text: #16161a; --text-2: #55545b;
+    --muted: #8a8990; --line: #dcdbd3; --accent: #2a63c7; --focus: #2a63c7;
+    --c-git: #7a4fd0; --c-deploy: #2a78d6; --c-image: #b8611f; --c-secret: #c23b6a;
+    --c-data: #138a5f; --c-auth: #b88a00; --c-net: #5a6b7d; --c-host: #8a8990; --c-doc: #9a8fb8;
+    --lane: rgba(0,0,0,.025);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f0f11; --surface: #19191c; --surface-2: #222226; --text: #f2f2f0; --text-2: #b9b8b3;
+      --muted: #85848a; --line: #2f2f34; --accent: #6ea0f5; --focus: #6ea0f5;
+      --c-git: #a585f0; --c-deploy: #5b9cf0; --c-image: #e08a4a; --c-secret: #ea6b98;
+      --c-data: #3cc48f; --c-auth: #e0b43a; --c-net: #8fa1b5; --c-host: #85848a; --c-doc: #a99fcc;
+      --lane: rgba(255,255,255,.025);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f0f11; --surface: #19191c; --surface-2: #222226; --text: #f2f2f0; --text-2: #b9b8b3;
+    --muted: #85848a; --line: #2f2f34; --accent: #6ea0f5; --focus: #6ea0f5;
+    --c-git: #a585f0; --c-deploy: #5b9cf0; --c-image: #e08a4a; --c-secret: #ea6b98;
+    --c-data: #3cc48f; --c-auth: #e0b43a; --c-net: #8fa1b5; --c-host: #85848a; --c-doc: #a99fcc;
+    --lane: rgba(255,255,255,.025);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .wrap { max-width: 1480px; margin: 0 auto; padding: 20px 16px 48px; }
+  header { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 12px; margin-bottom: 14px; }
+  h1 { font-size: 20px; margin: 0; letter-spacing: -.01em; }
+  .sub { color: var(--text-2); font-size: 13px; margin-top: 2px; }
+  .meta { color: var(--muted); font-size: 12px; }
+  nav.tabs { display: flex; gap: 4px; flex-wrap: wrap; border-bottom: 1px solid var(--line); margin-bottom: 14px; }
+  nav.tabs button { background: none; border: 0; border-bottom: 2px solid transparent; padding: 8px 12px;
+    color: var(--text-2); font: inherit; cursor: pointer; }
+  nav.tabs button[aria-selected="true"] { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
+  button:focus-visible, input:focus-visible, .node:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+  .chip { border: 1px solid var(--line); background: var(--surface); color: var(--text-2); border-radius: 999px;
+    padding: 4px 11px; font: inherit; font-size: 12.5px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+  .chip[aria-pressed="true"] { color: var(--text); border-color: var(--text-2); font-weight: 600; }
+  .swatch { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
+  input[type="search"] { border: 1px solid var(--line); background: var(--surface); color: var(--text); border-radius: 8px;
+    padding: 6px 10px; font: inherit; min-width: 220px; flex: 1; max-width: 340px; }
+  .grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 14px; }
+  @media (max-width: 980px) { .grid { grid-template-columns: 1fr; } }
+  .canvas { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: auto; }
+  svg { display: block; width: 100%; height: auto; min-width: 880px; }
+  .lane-bg { fill: var(--lane); }
+  .lane-title { fill: var(--muted); font-size: 11.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+  .node rect { fill: var(--surface-2); stroke: var(--line); stroke-width: 1; rx: 9; }
+  .node .t1 { fill: var(--text); font-size: 13px; font-weight: 600; }
+  .node .t2 { fill: var(--muted); font-size: 11px; }
+  .node { cursor: pointer; transition: opacity .15s; }
+  .node.dim { opacity: .22; }
+  .node.sel rect { stroke: var(--accent); stroke-width: 2; }
+  .node.hit rect { stroke: var(--c-auth); stroke-width: 2; }
+  .edge { fill: none; stroke-width: 1.6; opacity: .75; transition: opacity .15s; }
+  .edge.dim { opacity: .06; }
+  .edge.hl { stroke-width: 2.6; opacity: 1; }
+  .elabel { font-size: 11px; fill: var(--text); paint-order: stroke; stroke: var(--surface); stroke-width: 4px; pointer-events: none; }
+  aside.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; align-self: start;
+    position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow: auto; }
+  .panel h2 { font-size: 16px; margin: 0 0 2px; }
+  .panel .kind { color: var(--muted); font-size: 12px; margin-bottom: 10px; }
+  .panel p { color: var(--text-2); margin: 0 0 10px; font-size: 13px; }
+  dl.kv { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 12px; margin: 0 0 12px; font-size: 12.5px; }
+  dl.kv dt { color: var(--muted); }
+  dl.kv dd { margin: 0; overflow-wrap: anywhere; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+  .panel h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 12px 0 6px; }
+  ul.rel { list-style: none; padding: 0; margin: 0; font-size: 12.5px; }
+  ul.rel li { padding: 4px 0; border-top: 1px solid var(--line); display: flex; gap: 8px; align-items: baseline; }
+  ul.rel button { background: none; border: 0; padding: 0; color: var(--accent); font: inherit; cursor: pointer; text-align: left; }
+  ul.rel .dir { color: var(--muted); min-width: 14px; }
+  ul.rel .lbl { color: var(--text-2); }
+  .src { font-size: 12px; color: var(--muted); }
+  .src code { font-size: 11.5px; }
+  table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; font-size: 13px; }
+  th, td { text-align: left; padding: 8px 10px; border-top: 1px solid var(--line); vertical-align: top; }
+  th { background: var(--surface-2); font-size: 12px; color: var(--text-2); border-top: 0; }
+  td code, dd code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+  .tablewrap { overflow-x: auto; }
+  .note { color: var(--text-2); font-size: 13px; margin: 0 0 12px; max-width: 900px; }
+  .pill { display: inline-block; border-radius: 999px; padding: 1px 8px; font-size: 11.5px; background: var(--surface-2); color: var(--text-2); }
+  [hidden] { display: none !important; }
+  ol.rules li, ul.log li { margin-bottom: 6px; color: var(--text-2); }
+  .theme { margin-left: auto; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>BDT platform map</h1>
+      <div class="sub">Battery Digital Twin: infrastructure components, how they connect, their key settings, and the five repositories.</div>
+    </div>
+    <div class="meta" id="meta"></div>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" aria-selected="true" data-tab="map">Map</button>
+    <button role="tab" aria-selected="false" data-tab="repos">Repositories</button>
+    <button role="tab" aria-selected="false" data-tab="secrets">Secrets</button>
+    <button role="tab" aria-selected="false" data-tab="kv">All key-values</button>
+    <button role="tab" aria-selected="false" data-tab="about">Changelog &amp; upkeep</button>
+    <button class="chip theme" id="themeBtn" type="button" title="Switch light/dark">◐ Theme</button>
+  </nav>
+
+  <section data-panel="map">
+    <div class="toolbar" id="lenses"></div>
+    <div class="toolbar">
+      <input type="search" id="search" placeholder="Search components and values (e.g. nasa-gold-s3, 9000, odin)">
+      <span class="meta" id="hint">Click a component for its settings and connections. Click empty space to reset.</span>
+    </div>
+    <div class="grid">
+      <div class="canvas"><svg id="map" role="img" aria-label="Platform component map"></svg></div>
+      <aside class="panel" id="panel" aria-live="polite"></aside>
+    </div>
+  </section>
+
+  <section data-panel="repos" hidden>
+    <p class="note">Five repositories under <code>github.com/rdcsung</code>. Arrows on the map's “Repos &amp; delivery” lens show the same relations.</p>
+    <div class="tablewrap"><table id="repoTable"></table></div>
+  </section>
+
+  <section data-panel="secrets" hidden>
+    <p class="note">Hand-made Secrets live in Vault (KV v2 at <code>secret/</code>) and are synced into each namespace by External Secrets
+      (<code>creationPolicy: Orphan</code>, hourly). A namespace's <code>vault-eso</code> service account can read only
+      <code>secret/k8s/&lt;its namespace&gt;/*</code>. Values are never shown here.</p>
+    <div class="tablewrap"><table id="secretTable"></table></div>
+    <p class="note" style="margin-top:12px">Not in Vault on purpose: cert-manager TLS Secrets, Argo CD's own Secrets (incl. <code>gitops-repo-creds</code>),
+      chart-generated Secrets (e.g. <code>airflow-broker-url</code>), Vault's unseal key and root token, the MinIO root login (Ansible vault in bdt-infra),
+      and Airflow's <code>minio_s3</code> connection (Airflow DB; backlog PL-3).</p>
+  </section>
+
+  <section data-panel="kv" hidden>
+    <div class="toolbar"><input type="search" id="kvSearch" placeholder="Filter (component, key or value)"></div>
+    <div class="tablewrap"><table id="kvTable"></table></div>
+  </section>
+
+  <section data-panel="about" hidden>
+    <h3 style="margin-top:0">Upkeep rules</h3>
+    <ol class="rules">
+      <li>Any change that adds, removes or reconfigures a component, host, URL, port, Secret, Vault path, repo relation or pipeline step updates <code>MODEL</code> in this file <strong>in the same change</strong> (rule in <code>AGENTS.md</code>).</li>
+      <li>Bump <code>MODEL.updated</code> and add a line to <code>MODEL.changelog</code>.</li>
+      <li>Facts only, checked against the repos or the cluster; never secret values.</li>
+      <li>New component: add a node (pick a lane), its <code>kv</code>, its <code>src</code> (where it's defined), and its edges with the right type.</li>
+    </ol>
+    <h3>Changelog</h3>
+    <ul class="log" id="log"></ul>
+  </section>
+</div>
+
+<script>
+/* ===================================================================
+   MODEL: the single source of truth for this page. Edit here.
+   lanes: left-to-right columns of the map.
+   nodes: id, lane, label, sub (one line), kind, desc, kv {key: value},
+          src (where it's defined), order (position in lane).
+   edges: from, to, type (see EDGE_TYPES), label, kv (optional).
+   =================================================================== */
+const MODEL = {
+  updated: "2026-10-09",
+  lanes: [
+    { id: "outside",  title: "Outside" },
+    { id: "repos",    title: "Repositories" },
+    { id: "delivery", title: "Delivery" },
+    { id: "platform", title: "Platform (k3s)" },
+    { id: "apps",     title: "Apps (k3s)" },
+    { id: "data",     title: "Data & storage" },
+    { id: "hosts",    title: "Hosts" },
+  ],
+  nodes: [
+    // ---- outside
+    { id: "user", lane: "outside", label: "Browser / devices", sub: "LAN clients", kind: "Client",
+      desc: "Anyone on the home LAN using the web UIs. Devices trust the homelab root CA and resolve *.k3s.home.",
+      kv: { "DNS": "*.k3s.home → 192.168.50.10", "Trust": "homelab root CA (cert-manager)", "Login": "Keycloak realm bdt → Google" },
+      src: "bdt-infra README: Trust the CA and set up DNS" },
+    { id: "google", lane: "outside", label: "Google", sub: "OAuth identity provider", kind: "External service",
+      desc: "Keycloak brokers login to Google. Google's OAuth client needs a public-suffix hostname, hence Keycloak on sslip.io.",
+      kv: { "Used by": "Keycloak realm bdt (identity provider)" }, src: "bdt-gitops README: Keycloak" },
+    { id: "nasa", lane: "outside", label: "NASA PCoE data", sub: "Li-ion aging data set", kind: "External data",
+      desc: "Item 5 \"Battery Data Set\" from the NASA PCoE repository: 6 zips, 38 .mat files, 34 batteries (B0025–B0028 twice).",
+      kv: { "URL": "https://phm-datasets.s3.amazonaws.com/NASA/5.+Battery+Data+Set.zip", "Size": "≈200 MB", "Batteries": "34", "Rated capacity": "2.0 Ah" },
+      src: "bdt_pipeline README" },
+    { id: "github", lane: "outside", label: "GitHub", sub: "github.com/rdcsung", kind: "External service",
+      desc: "Hosts the five repositories and runs CI (cloud runners for tests, the self-hosted homelab runner for image builds).",
+      kv: { "Account": "rdcsung", "Repos": "bdt, bdt_pipeline, bdt-gitops, bdt-infra, bdt_proj" } },
+
+    // ---- repositories
+    { id: "r_bdt", lane: "repos", label: "bdt", sub: "app: FastAPI + React", kind: "Repository",
+      desc: "Battery SOH dashboard: FastAPI backend (vehicles, /api/batteries) and React/Vite frontend. CI builds images and auto-deploys to dev.",
+      kv: { "Branch": "main", "Backend": "Python 3.12, uv, FastAPI, pandas, pyarrow", "Frontend": "React 18, Vite, Recharts, keycloak-js", "Tests": "pytest, vitest", "Workflows": "ci-cd.yml, promote.yml" },
+      src: "github.com/rdcsung/bdt" },
+    { id: "r_pipeline", lane: "repos", label: "bdt_pipeline", sub: "Airflow DAGs", kind: "Repository",
+      desc: "Data pipelines: NASA ingest (landing → raw → bronze) and transform (silver → gold, quality flags, SOH). Logic in dags/nasa_battery/, DAG files thin.",
+      kv: { "Branch": "main (git-synced)", "DAGs": "nasa_battery_ingest, nasa_battery_transform", "Modules": "extract, convert, metadata, silver, quality, gold", "Deps": "pinned to apache/airflow:3.2.2 image" },
+      src: "github.com/rdcsung/bdt_pipeline" },
+    { id: "r_gitops", lane: "repos", label: "bdt-gitops", sub: "Argo CD manifests", kind: "Repository",
+      desc: "Everything that runs inside the cluster: Kustomize base + overlays for the dashboard, platform/ for services, argocd/ bootstrap Applications.",
+      kv: { "Layout": "base/, overlays/{dev,qa,prod}, platform/*, components/vault-store, argocd/*", "Synced by": "Argo CD (automated, prune, selfHeal)", "Writers": "humans + bdt CI (dev tag bump, promote)" },
+      src: "github.com/rdcsung/bdt-gitops" },
+    { id: "r_infra", lane: "repos", label: "bdt-infra", sub: "Ansible + runbooks", kind: "Repository",
+      desc: "Owns the cluster's existence: Ubuntu, k3s, Argo CD bootstrap, MinIO (Silo) on odin; the full rebuild runbook; Vault/ESO and MinIO scripts.",
+      kv: { "Playbooks": "site, server, agent, argocd, minio", "Scripts": "vault-eso-setup.sh, setup-nasa-gold-key.sh", "Docs": "minio.md, vault-secrets.md" },
+      src: "github.com/rdcsung/bdt-infra" },
+    { id: "r_proj", lane: "repos", label: "bdt_proj", sub: "backlog, briefs, rules", kind: "Repository",
+      desc: "Project backlog, phase briefs, agent rules (AGENTS.md), data dictionary and this map. No code.",
+      kv: { "Files": "BACKLOG.md, AGENTS.md, CLAUDE.md, docs/briefs/*, docs/data-dictionary.md, docs/architecture.html" },
+      src: "github.com/rdcsung/bdt_proj" },
+
+    // ---- delivery
+    { id: "gha", lane: "delivery", label: "GitHub Actions", sub: "CI + self-hosted runner", kind: "CI/CD",
+      desc: "bdt's ci-cd.yml: tests on GitHub cloud runners; image builds and the gitops bump on the self-hosted 'homelab' runner (cloud runners can't reach JFrog).",
+      kv: { "Tests": "uv run pytest, npm test, npm run build", "Build": "runs-on [self-hosted, homelab]", "Images": "bdt-backend, bdt-frontend :<git sha>", "Dev deploy": "commit to bdt-gitops overlays/dev", "qa/prod": "promote.yml (manual, environment gate)" },
+      src: "bdt/.github/workflows/ci-cd.yml, promote.yml" },
+    { id: "jfrog", lane: "delivery", label: "JFrog JCR", sub: "container registry", kind: "Registry (k3s, ns jfrog)",
+      desc: "JFrog Container Registry holding the app images. Reached by nodes and the runner on a NodePort, by people at jfrog.k3s.home.",
+      kv: { "Namespace": "jfrog", "Image": "artifactory-jcr:7.161.20", "UI": "https://jfrog.k3s.home", "Registry": "192.168.50.10:31576 (NodePort 8082)", "Repo": "battery-docker-local", "DB": "jfrog-postgres", "Secrets": "jfrog-postgres-creds, jfrog-security-keys" },
+      src: "bdt-gitops platform/jfrog" },
+    { id: "argocd", lane: "delivery", label: "Argo CD", sub: "GitOps controller", kind: "Platform (k3s, ns argocd)",
+      desc: "Syncs bdt-gitops into the cluster. Applications under argocd/ are applied once by hand; everything else is automated.",
+      kv: { "Namespace": "argocd", "Version": "v3.5.1 (chart 10.4.0)", "UI": "https://argocd.k3s.home", "Applications": "airflow, battery-dashboard-{dev,qa,prod}, cert-manager, external-secrets, jfrog, keycloak, postgres, vault", "Repo access": "gitops-repo-creds (not in Vault: bootstrap)" },
+      src: "bdt-infra roles/argocd_bootstrap; bdt-gitops argocd/" },
+
+    // ---- platform
+    { id: "traefik", lane: "platform", label: "Traefik", sub: "ingress (k3s built-in)", kind: "Platform (k3s, ns kube-system)",
+      desc: "k3s' bundled ingress controller. Every web UI is an Ingress with TLS from cert-manager and an http→https redirect middleware.",
+      kv: { "Service": "LoadBalancer 80:30348, 443:30644", "Hosts": "battery-{dev,qa,prod}.k3s.home, airflow, argocd, jfrog, vault .k3s.home, keycloak.192-168-50-10.sslip.io" },
+      src: "k3s; Ingress objects in bdt-gitops" },
+    { id: "certmgr", lane: "platform", label: "cert-manager", sub: "TLS from homelab CA", kind: "Platform (k3s, ns cert-manager)",
+      desc: "Issues and renews every Ingress certificate from a private root CA. Its Secrets stay out of Vault (it owns them).",
+      kv: { "Version": "v1.21.1", "ClusterIssuers": "homelab-ca, selfsigned-bootstrap", "Root CA Secret": "cert-manager/homelab-root-ca-secret" },
+      src: "bdt-gitops argocd/cert-manager-application.yaml, cluster/homelab-ca.yaml" },
+    { id: "keycloak", lane: "platform", label: "Keycloak", sub: "login (OIDC)", kind: "Platform (k3s, ns keycloak)",
+      desc: "Identity for the dashboard. Realm bdt, public client bdt-frontend with PKCE, Google as identity provider.",
+      kv: { "Image": "keycloak:26.0", "URL": "https://keycloak.192-168-50-10.sslip.io", "Realm": "bdt", "Client": "bdt-frontend (public, PKCE S256)", "JWKS (in-cluster)": "http://keycloak.keycloak.svc.cluster.local:8080/realms/bdt/…/certs", "DB": "keycloak-postgres", "Secrets": "keycloak-admin-creds, keycloak-postgres-creds" },
+      src: "bdt-gitops platform/keycloak" },
+    { id: "vault", lane: "platform", label: "Vault", sub: "secrets store", kind: "Platform (k3s, ns vault)",
+      desc: "Source of truth for the hand-made Secrets. Standalone, file storage on a local-path PVC on odin. Re-seals on restart; unseal by hand. No backup yet (PL-2).",
+      kv: { "Version": "2.0.4 (chart 0.34.1)", "UI": "https://vault.k3s.home", "In-cluster": "http://vault.vault.svc:8200", "KV engine": "secret/ (v2)", "Paths": "secret/k8s/<namespace>/<secret>", "Auth": "auth/kubernetes, role eso", "Policy": "eso-namespace (own namespace only)", "Injector": "installed, unused", "Backup": "none yet (PL-2)" },
+      src: "bdt-gitops argocd/vault-application.yaml; bdt-infra docs/vault-secrets.md" },
+    { id: "eso", lane: "platform", label: "External Secrets", sub: "Vault → Secrets", kind: "Platform (k3s, ns external-secrets)",
+      desc: "Syncs 15 Secrets from Vault into 7 namespaces. Each namespace has a vault-eso ServiceAccount and a SecretStore 'vault'.",
+      kv: { "Version": "2.12.0", "Store": "SecretStore 'vault' per namespace", "Creation policy": "Orphan (pruning never deletes the Secret)", "Refresh": "1h (force: annotate force-sync)", "If Vault sealed": "existing Secrets stay; sync pauses" },
+      src: "bdt-gitops argocd/external-secrets-application.yaml, components/vault-store, */external-secrets.yaml" },
+
+    // ---- apps
+    { id: "frontend", lane: "apps", label: "Dashboard frontend", sub: "React SPA (nginx)", kind: "App (k3s, ns battery-dashboard-*)",
+      desc: "Battery SOH dashboard UI: simulated fleet view and NASA test cells view (Battery Twin card, SOH chart). nginx serves the SPA and proxies /api to the backend.",
+      kv: { "Image": "bdt-frontend:<sha>", "URLs": "https://battery-{dev,qa,prod}.k3s.home", "Views": "#fleet (default), #nasa, #nasa/<battery>", "Auth": "keycloak-js, login-required", "dev tag": "cf19aef", "qa/prod tag": "8290b40" },
+      src: "bdt/frontend; bdt-gitops base/frontend-deployment.yaml" },
+    { id: "backend", lane: "apps", label: "Dashboard backend", sub: "FastAPI", kind: "App (k3s, ns battery-dashboard-*)",
+      desc: "Serves synthetic vehicle data and the NASA gold tables. Verifies Keycloak tokens. Reads gold via _latest.json, refreshes every 5 min.",
+      kv: { "Image": "bdt-backend:<sha>", "Routes": "/api/health, /api/vehicles/*, /api/batteries, /api/batteries/{id}, /api/batteries/{id}/soh", "NASA_S3_ENDPOINT": "http://192.168.50.10:9000", "NASA_S3_BUCKET / PREFIX": "bdt-lake / gold/nasa_pcoe_battery", "NASA_S3_ACCESS_KEY / SECRET_KEY": "from Secret nasa-gold-s3 (optional; dev only)", "KEYCLOAK_ISSUER": "https://keycloak.192-168-50-10.sslip.io/realms/bdt", "dev tag": "cf19aef", "qa/prod tag": "8290b40 (no NASA routes yet)" },
+      src: "bdt/backend; bdt-gitops base/backend-deployment.yaml" },
+    { id: "airflow", lane: "apps", label: "Airflow", sub: "pipelines (3.2.2)", kind: "App (k3s, ns airflow)",
+      desc: "Runs the bdt_pipeline DAGs. LocalExecutor; api-server, scheduler, dag-processor, triggerer, all pinned to odin. DAGs arrive by git-sync.",
+      kv: { "Image": "apache/airflow:3.2.2 (stock)", "UI": "https://airflow.k3s.home", "Executor": "LocalExecutor", "DAG source": "git@github.com:rdcsung/bdt_pipeline.git, main, dags/, every 60s", "Connection": "minio_s3 (aws, rw on bdt-lake; in Airflow DB)", "DB": "airflow-postgres", "Secrets": "6 from Vault (see Secrets tab)" },
+      src: "bdt-gitops argocd/airflow-application.yaml, platform/airflow" },
+
+    // ---- data
+    { id: "minio", lane: "data", label: "MinIO (Silo)", sub: "S3 on odin host", kind: "Host service (odin, outside k3s)",
+      desc: "S3-compatible object store (Silo, the maintained MinIO fork) running as a systemd service on odin. Holds the battery data lake.",
+      kv: { "Endpoint": "http://192.168.50.10:9000", "Bucket": "bdt-lake", "Layers": "landing/ raw/ bronze/ silver/ gold/ (+ /nasa_pcoe_battery/ingest_date=…)", "Latest snapshot": "ingest_date=2026-10-07 (gold/_latest.json)", "User airflow": "bdt-lake-rw (read-write)", "User bdt-dashboard": "bdt-lake-gold-ro (read gold/ only)", "Root login": "Ansible vault in bdt-infra" },
+      src: "bdt-infra playbooks/minio.yml, docs/minio.md" },
+    { id: "pg_airflow", lane: "data", label: "airflow-postgres", sub: "Airflow metadata", kind: "Database (k3s, ns airflow)",
+      desc: "Postgres 16 for Airflow's metadata DB.", kv: { "Image": "postgres:16-alpine", "Secret": "airflow-postgres-creds; DSN in airflow-metadata", "Node": "odin (local-path PVC)" },
+      src: "bdt-gitops platform/airflow/postgres.yaml" },
+    { id: "pg_keycloak", lane: "data", label: "keycloak-postgres", sub: "Keycloak DB", kind: "Database (k3s, ns keycloak)",
+      desc: "Postgres 16 for Keycloak.", kv: { "Image": "postgres:16-alpine", "Secret": "keycloak-postgres-creds", "Node": "odin (local-path PVC)" },
+      src: "bdt-gitops platform/keycloak/postgres.yaml" },
+    { id: "pg_jfrog", lane: "data", label: "jfrog-postgres", sub: "JFrog DB", kind: "Database (k3s, ns jfrog)",
+      desc: "Postgres 16 for JFrog JCR (no embedded Derby).", kv: { "Image": "postgres:16-alpine", "Secret": "jfrog-postgres-creds", "Node": "odin (local-path PVC)" },
+      src: "bdt-gitops platform/jfrog/postgres.yaml" },
+    { id: "pg_shared", lane: "data", label: "postgres (shared)", sub: "ad-hoc databases", kind: "Database (k3s, ns postgres)",
+      desc: "General-purpose Postgres 16 for experiments, not tied to an app.",
+      kv: { "Address": "postgres.postgres.svc.cluster.local:5432", "Default DB": "app", "Secret": "postgres-creds", "Size": "10Gi local-path, odin" },
+      src: "bdt-gitops platform/postgres, docs/postgres.md" },
+
+    // ---- hosts
+    { id: "odin", lane: "hosts", label: "odin", sub: "192.168.50.10 · control-plane", kind: "Host",
+      desc: "k3s control-plane and the most powerful machine. Runs MinIO on the host, and holds every local-path PVC (Vault, Postgres instances, Airflow). A local LLM runs outside k3s.",
+      kv: { "IP": "192.168.50.10", "k3s": "v1.36.3+k3s1 (server)", "Host services": "Silo/MinIO :9000", "Pinned here": "vault, airflow, *-postgres" },
+      src: "bdt-infra inventory/hosts.yml" },
+    { id: "thor", lane: "hosts", label: "thor", sub: "192.168.50.20 · worker", kind: "Host",
+      desc: "k3s worker and the development/control machine (Ansible runs locally here).",
+      kv: { "IP": "192.168.50.20", "k3s": "v1.36.3+k3s1 (agent)" }, src: "bdt-infra inventory/hosts.yml" },
+    { id: "loki", lane: "hosts", label: "loki", sub: "192.168.50.21 · worker", kind: "Host",
+      desc: "k3s worker.", kv: { "IP": "192.168.50.21", "k3s": "v1.36.3+k3s1 (agent)" }, src: "bdt-infra inventory/hosts.yml" },
+  ],
+  edges: [
+    // repos & delivery
+    { from: "github", to: "gha", type: "git", label: "runs Actions (cloud + homelab runner)" },
+    { from: "r_bdt", to: "gha", type: "git", label: "push / PR → CI" },
+    { from: "gha", to: "jfrog", type: "image", label: "push bdt-backend, bdt-frontend :<sha>" },
+    { from: "gha", to: "r_gitops", type: "git", label: "bump overlays/dev; promote → qa/prod" },
+    { from: "r_gitops", to: "argocd", type: "git", label: "watched (gitops-repo-creds)" },
+    { from: "r_pipeline", to: "airflow", type: "git", label: "git-sync dags/ over SSH (airflow-git-ssh)" },
+    { from: "r_proj", to: "r_bdt", type: "doc", label: "briefs & rules" },
+    { from: "r_proj", to: "r_pipeline", type: "doc", label: "briefs & rules" },
+    { from: "r_proj", to: "r_gitops", type: "doc", label: "briefs & rules" },
+    { from: "r_proj", to: "r_infra", type: "doc", label: "briefs & rules" },
+    // deploy
+    { from: "r_infra", to: "odin", type: "deploy", label: "Ansible: k3s server, MinIO" },
+    { from: "r_infra", to: "thor", type: "deploy", label: "Ansible: k3s agent" },
+    { from: "r_infra", to: "loki", type: "deploy", label: "Ansible: k3s agent" },
+    { from: "r_infra", to: "argocd", type: "deploy", label: "Ansible: Argo CD (Helm)" },
+    { from: "r_infra", to: "minio", type: "deploy", label: "Ansible: Silo .deb + systemd" },
+    { from: "argocd", to: "certmgr", type: "deploy", label: "sync" },
+    { from: "argocd", to: "keycloak", type: "deploy", label: "sync" },
+    { from: "argocd", to: "vault", type: "deploy", label: "sync" },
+    { from: "argocd", to: "eso", type: "deploy", label: "sync" },
+    { from: "argocd", to: "jfrog", type: "deploy", label: "sync" },
+    { from: "argocd", to: "frontend", type: "deploy", label: "sync (dev/qa/prod)" },
+    { from: "argocd", to: "backend", type: "deploy", label: "sync (dev/qa/prod)" },
+    { from: "argocd", to: "airflow", type: "deploy", label: "sync (chart + platform/airflow)" },
+    { from: "argocd", to: "pg_shared", type: "deploy", label: "sync" },
+    { from: "jfrog", to: "frontend", type: "image", label: "pull (jfrog-pull-secret)" },
+    { from: "jfrog", to: "backend", type: "image", label: "pull (jfrog-pull-secret)" },
+    // secrets
+    { from: "vault", to: "eso", type: "secret", label: "k8s auth role eso; secret/k8s/<ns>/*" },
+    { from: "eso", to: "airflow", type: "secret", label: "6 Secrets" },
+    { from: "eso", to: "keycloak", type: "secret", label: "2 Secrets" },
+    { from: "eso", to: "jfrog", type: "secret", label: "2 Secrets" },
+    { from: "eso", to: "pg_shared", type: "secret", label: "postgres-creds" },
+    { from: "eso", to: "backend", type: "secret", label: "nasa-gold-s3 (dev), jfrog-pull-secret ×3" },
+    // data
+    { from: "nasa", to: "airflow", type: "data", label: "download zip (nasa_battery_ingest)" },
+    { from: "airflow", to: "minio", type: "data", label: "landing → raw → bronze → silver → gold (minio_s3, rw)" },
+    { from: "minio", to: "backend", type: "data", label: "read gold/ (nasa-gold-s3, read-only)" },
+    { from: "airflow", to: "pg_airflow", type: "data", label: "metadata DB" },
+    { from: "keycloak", to: "pg_keycloak", type: "data", label: "DB" },
+    { from: "jfrog", to: "pg_jfrog", type: "data", label: "DB" },
+    // auth & network
+    { from: "user", to: "traefik", type: "net", label: "HTTPS *.k3s.home" },
+    { from: "traefik", to: "frontend", type: "net", label: "Ingress battery-*.k3s.home" },
+    { from: "traefik", to: "airflow", type: "net", label: "Ingress airflow.k3s.home" },
+    { from: "traefik", to: "jfrog", type: "net", label: "Ingress jfrog.k3s.home" },
+    { from: "traefik", to: "vault", type: "net", label: "Ingress vault.k3s.home" },
+    { from: "traefik", to: "keycloak", type: "net", label: "Ingress (sslip.io)" },
+    { from: "traefik", to: "argocd", type: "net", label: "Ingress argocd.k3s.home" },
+    { from: "certmgr", to: "traefik", type: "net", label: "TLS certs (homelab-ca)" },
+    { from: "frontend", to: "backend", type: "net", label: "/api proxy (nginx)" },
+    { from: "user", to: "keycloak", type: "auth", label: "OIDC login (PKCE)" },
+    { from: "keycloak", to: "google", type: "auth", label: "identity provider" },
+    { from: "frontend", to: "keycloak", type: "auth", label: "keycloak-js, client bdt-frontend" },
+    { from: "backend", to: "keycloak", type: "auth", label: "JWKS, verify RS256 tokens" },
+    // hosts
+    { from: "odin", to: "minio", type: "host", label: "runs (systemd silo)" },
+    { from: "odin", to: "vault", type: "host", label: "pinned (PVC)" },
+    { from: "odin", to: "airflow", type: "host", label: "pinned (logs PVC)" },
+    { from: "odin", to: "pg_airflow", type: "host", label: "pinned (PVC)" },
+    { from: "odin", to: "pg_keycloak", type: "host", label: "pinned (PVC)" },
+    { from: "odin", to: "pg_jfrog", type: "host", label: "pinned (PVC)" },
+    { from: "odin", to: "pg_shared", type: "host", label: "pinned (PVC)" },
+  ],
+  repos: [
+    { repo: "bdt", owns: "Dashboard app: FastAPI backend, React frontend, tests, Dockerfiles, CI/CD workflows",
+      deliveredBy: "GitHub Actions → JFrog images → commit to bdt-gitops (dev auto, qa/prod via promote)",
+      feeds: "battery-dashboard-{dev,qa,prod}", readsFrom: "bdt_pipeline's gold tables (MinIO), Keycloak" },
+    { repo: "bdt_pipeline", owns: "Airflow DAGs and their logic; bronze/silver/gold schemas; pipeline tests",
+      deliveredBy: "git-sync from main into Airflow (no image build)", feeds: "MinIO bdt-lake (all layers)", readsFrom: "NASA PCoE data set" },
+    { repo: "bdt-gitops", owns: "All in-cluster manifests: app overlays, platform services, ExternalSecrets, bootstrap Applications",
+      deliveredBy: "Argo CD (automated sync, prune, selfHeal)", feeds: "every namespace except kube-system", readsFrom: "Vault (via ESO), JFrog images" },
+    { repo: "bdt-infra", owns: "Ansible for k3s nodes and MinIO on odin; rebuild runbook; Vault/ESO and MinIO-key scripts",
+      deliveredBy: "ansible-playbook from thor; scripts run by hand on odin", feeds: "odin, thor, loki; Argo CD install", readsFrom: "Ansible vault (k3s token, MinIO root)" },
+    { repo: "bdt_proj", owns: "Backlog, phase briefs, agent rules (AGENTS.md), data dictionary, this map",
+      deliveredBy: "read by people and agents", feeds: "how work is done in the other four", readsFrom: "facts from all four repos + the cluster" },
+  ],
+  secrets: [
+    ["airflow", "airflow-api-secret-key", "api-secret-key", "Airflow api-server"],
+    ["airflow", "airflow-fernet-key", "fernet-key", "Airflow (encrypts connections)"],
+    ["airflow", "airflow-git-ssh", "gitSshKey", "git-sync (bdt_pipeline deploy key)"],
+    ["airflow", "airflow-jwt-secret", "jwt-secret", "Airflow api-server"],
+    ["airflow", "airflow-metadata", "connection", "Airflow → airflow-postgres"],
+    ["airflow", "airflow-postgres-creds", "username, password", "airflow-postgres"],
+    ["jfrog", "jfrog-postgres-creds", "username, password", "JFrog, jfrog-postgres"],
+    ["jfrog", "jfrog-security-keys", "masterKey, joinKey", "JFrog"],
+    ["keycloak", "keycloak-admin-creds", "username, password", "Keycloak admin"],
+    ["keycloak", "keycloak-postgres-creds", "username, password", "Keycloak, keycloak-postgres"],
+    ["postgres", "postgres-creds", "username, password", "shared postgres"],
+    ["battery-dashboard-dev", "jfrog-pull-secret", ".dockerconfigjson", "image pulls from JFrog"],
+    ["battery-dashboard-dev", "nasa-gold-s3", "access-key, secret-key", "backend → MinIO gold/ (read-only user bdt-dashboard)"],
+    ["battery-dashboard-qa", "jfrog-pull-secret", ".dockerconfigjson", "image pulls from JFrog"],
+    ["battery-dashboard-prod", "jfrog-pull-secret", ".dockerconfigjson", "image pulls from JFrog"],
+  ],
+  changelog: [
+    "2026-10-09: first version. Phase 1 (NASA silver/gold, /api/batteries, NASA view) live in dev; secrets moved to Vault + External Secrets; read-only MinIO key for the dashboard.",
+  ],
+};
+
+const EDGE_TYPES = {
+  git:    { name: "Repos & delivery", color: "var(--c-git)" },
+  image:  { name: "Images",           color: "var(--c-image)" },
+  deploy: { name: "Deploy / sync",    color: "var(--c-deploy)" },
+  secret: { name: "Secrets",          color: "var(--c-secret)" },
+  data:   { name: "Data",             color: "var(--c-data)" },
+  net:    { name: "Network & TLS",    color: "var(--c-net)" },
+  auth:   { name: "Auth",             color: "var(--c-auth)" },
+  host:   { name: "Runs on",          color: "var(--c-host)" },
+  doc:    { name: "Briefs & rules",   color: "var(--c-doc)" },
+};
+const LENSES = [
+  { id: "all",      name: "Everything", types: Object.keys(EDGE_TYPES) },
+  { id: "repos",    name: "Repos & delivery", types: ["git", "image", "doc"] },
+  { id: "deploy",   name: "Deploy",     types: ["deploy", "image"] },
+  { id: "secrets",  name: "Secrets",    types: ["secret"] },
+  { id: "data",     name: "NASA data flow", types: ["data"] },
+  { id: "access",   name: "Auth & network", types: ["net", "auth"] },
+  { id: "hosts",    name: "Hosts",      types: ["host", "deploy"] },
+];
+
+/* ===================== rendering (no need to edit) ===================== */
+const $ = (s, el = document) => el.querySelector(s);
+const NS = "http://www.w3.org/2000/svg";
+const byId = Object.fromEntries(MODEL.nodes.map(n => [n.id, n]));
+const svg = $("#map");
+const W = 166, H = 48, LANE_W = 188, TOP = 44, GAP = 84, PADX = 10;
+let lens = LENSES[0], selected = null, query = "";
+
+function layout() {
+  const counts = {};
+  MODEL.lanes.forEach((l, i) => {
+    const nodes = MODEL.nodes.filter(n => n.lane === l.id);
+    nodes.forEach((n, j) => { n.x = PADX + i * LANE_W + (LANE_W - W) / 2; n.y = TOP + 16 + j * GAP; });
+    counts[l.id] = nodes.length;
+  });
+  const rows = Math.max(...Object.values(counts));
+  return { width: PADX * 2 + MODEL.lanes.length * LANE_W, height: TOP + 16 + rows * GAP + 8 };
+}
+
+function el(tag, attrs = {}, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+
+function edgePath(a, b) {
+  const ax = a.x + W / 2, bx = b.x + W / 2;
+  if (a.lane === b.lane) {           // same lane: bow out to the right
+    const x = a.x + W, y1 = a.y + H / 2, y2 = b.y + H / 2, bow = 46 + Math.abs(y2 - y1) * 0.15;
+    return { d: `M${x},${y1} C${x + bow},${y1} ${x + bow},${y2} ${x},${y2}`, mx: x + bow * 0.75, my: (y1 + y2) / 2 };
+  }
+  const right = bx > ax;
+  const x1 = right ? a.x + W : a.x, x2 = right ? b.x : b.x + W;
+  const y1 = a.y + H / 2, y2 = b.y + H / 2, c = Math.max(40, Math.abs(x2 - x1) * 0.45);
+  const d = `M${x1},${y1} C${x1 + (right ? c : -c)},${y1} ${x2 + (right ? -c : c)},${y2} ${x2},${y2}`;
+  return { d, mx: (x1 + x2) / 2, my: (y1 + y2) / 2 };
+}
+
+function render() {
+  const { width, height } = layout();
+  svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+  svg.setAttribute("preserveAspectRatio", "xMinYMin meet");
+  svg.innerHTML = "";
+  const defs = el("defs", {}, svg);
+  for (const [t, def] of Object.entries(EDGE_TYPES)) {
+    const m = el("marker", { id: `arrow-${t}`, viewBox: "0 0 10 10", refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: "auto-start-reverse" }, defs);
+    el("path", { d: "M0,0 L10,5 L0,10 z", style: `fill:${def.color}` }, m);
+  }
+  MODEL.lanes.forEach((l, i) => {
+    el("rect", { class: "lane-bg", x: PADX + i * LANE_W + 4, y: 8, width: LANE_W - 8, height: height - 16, rx: 10 }, svg);
+    const t = el("text", { class: "lane-title", x: PADX + i * LANE_W + LANE_W / 2, y: 30, "text-anchor": "middle" }, svg);
+    t.textContent = l.title;
+  });
+  const gEdges = el("g", {}, svg), gLabels = el("g", {}, svg), gNodes = el("g", {}, svg);
+  MODEL.edges.forEach((e, i) => {
+    const a = byId[e.from], b = byId[e.to];
+    if (!a || !b) { console.warn("edge with unknown node", e); return; }
+    const p = edgePath(a, b);
+    e._path = el("path", { class: "edge", d: p.d, style: `stroke:${EDGE_TYPES[e.type].color}`, "marker-end": `url(#arrow-${e.type})` }, gEdges);
+    e._label = el("text", { class: "elabel", x: p.mx, y: p.my - 4, "text-anchor": "middle" }, gLabels);
+    e._label.textContent = e.label;
+    e._path.appendChild(el("title")).textContent = `${a.label} → ${b.label}: ${e.label}`;
+  });
+  MODEL.nodes.forEach(n => {
+    const g = el("g", { class: "node", transform: `translate(${n.x},${n.y})`, tabindex: 0, role: "button", "aria-label": `${n.label}: ${n.sub}` }, gNodes);
+    el("rect", { width: W, height: H }, g);
+    const t1 = el("text", { class: "t1", x: 12, y: 20 }, g); t1.textContent = n.label;
+    const t2 = el("text", { class: "t2", x: 12, y: 36 }, g); t2.textContent = n.sub;
+    g.addEventListener("click", ev => { ev.stopPropagation(); select(n.id); });
+    g.addEventListener("keydown", ev => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); select(n.id); } });
+    n._g = g;
+  });
+  update();
+}
+
+function matches(n) {
+  if (!query) return false;
+  const hay = [n.label, n.sub, n.kind, n.desc, ...Object.entries(n.kv || {}).flat()].join(" ").toLowerCase();
+  return hay.includes(query);
+}
+
+function update() {
+  const visible = MODEL.edges.filter(e => lens.types.includes(e.type));
+  const touched = new Set(visible.flatMap(e => [e.from, e.to]));
+  const selEdges = selected ? visible.filter(e => e.from === selected || e.to === selected) : [];
+  const near = new Set(selEdges.flatMap(e => [e.from, e.to]));
+  MODEL.edges.forEach(e => {
+    if (!e._path) return;
+    const on = lens.types.includes(e.type);
+    const hl = selected && (e.from === selected || e.to === selected) && on;
+    e._path.classList.toggle("dim", !on || (selected && !hl));
+    e._path.classList.toggle("hl", !!hl);
+    e._label.style.display = hl ? "" : "none";
+  });
+  spreadLabels(selEdges);
+  MODEL.nodes.forEach(n => {
+    const dim = selected ? !near.has(n.id) && n.id !== selected : (lens.id !== "all" && !touched.has(n.id));
+    n._g.classList.toggle("dim", dim);
+    n._g.classList.toggle("sel", n.id === selected);
+    n._g.classList.toggle("hit", matches(n));
+  });
+  renderPanel();
+}
+
+/* Nudge visible edge labels apart so they don't overlap. */
+function spreadLabels(edges) {
+  const placed = [];
+  edges.forEach(e => {
+    const t = e._label; if (!t) return;
+    t.setAttribute("y", t.dataset.y0 || (t.dataset.y0 = t.getAttribute("y")));
+    for (let i = 0; i < 12; i++) {
+      const b = t.getBBox();
+      const hit = placed.some(p => b.x < p.x + p.width && p.x < b.x + b.width && b.y < p.y + p.height && p.y < b.y + b.height);
+      if (!hit) break;
+      t.setAttribute("y", +t.getAttribute("y") + 13);
+    }
+    placed.push(t.getBBox());
+  });
+}
+
+function kvList(kv) {
+  const dl = document.createElement("dl"); dl.className = "kv";
+  for (const [k, v] of Object.entries(kv || {})) {
+    const dt = document.createElement("dt"); dt.textContent = k;
+    const dd = document.createElement("dd"); dd.textContent = v;
+    dl.append(dt, dd);
+  }
+  return dl;
+}
+
+function renderPanel() {
+  const p = $("#panel"); p.innerHTML = "";
+  if (!selected) {
+    const h = document.createElement("h2"); h.textContent = lens.id === "all" ? "Overview" : lens.name;
+    const d = document.createElement("p");
+    d.textContent = `${MODEL.nodes.length} components, ${MODEL.edges.length} relations across ${MODEL.lanes.length} lanes. Pick a lens above to see one kind of relation, or click a component.`;
+    p.append(h, d);
+    const h3 = document.createElement("h3"); h3.textContent = "Legend"; p.append(h3);
+    const ul = document.createElement("ul"); ul.className = "rel";
+    for (const [t, def] of Object.entries(EDGE_TYPES)) {
+      const li = document.createElement("li");
+      li.innerHTML = `<span class="swatch" style="background:${def.color};margin-top:7px"></span><span class="lbl"></span>`;
+      li.querySelector(".lbl").textContent = `${def.name} (${MODEL.edges.filter(e => e.type === t).length})`;
+      ul.append(li);
+    }
+    p.append(ul);
+    return;
+  }
+  const n = byId[selected];
+  const h = document.createElement("h2"); h.textContent = n.label;
+  const k = document.createElement("div"); k.className = "kind"; k.textContent = n.kind;
+  const d = document.createElement("p"); d.textContent = n.desc;
+  p.append(h, k, d, kvList(n.kv));
+  if (n.src) { const s = document.createElement("div"); s.className = "src"; s.innerHTML = "Defined in: <code></code>"; s.querySelector("code").textContent = n.src; p.append(s); }
+  const rel = MODEL.edges.filter(e => e.from === selected || e.to === selected);
+  const h3 = document.createElement("h3"); h3.textContent = `Connections (${rel.length})`; p.append(h3);
+  const ul = document.createElement("ul"); ul.className = "rel";
+  rel.forEach(e => {
+    const out = e.from === selected, other = byId[out ? e.to : e.from];
+    const li = document.createElement("li");
+    li.innerHTML = `<span class="swatch" style="background:${EDGE_TYPES[e.type].color};margin-top:7px"></span><span class="dir">${out ? "→" : "←"}</span><span><button type="button"></button> <span class="lbl"></span></span>`;
+    li.querySelector("button").textContent = other.label;
+    li.querySelector("button").addEventListener("click", () => select(other.id));
+    li.querySelector(".lbl").textContent = `· ${e.label}`;
+    ul.append(li);
+  });
+  p.append(ul);
+}
+
+function select(id) {
+  selected = id;
+  if (id) { const n = byId[id]; if (!lens.types.some(t => MODEL.edges.some(e => e.type === t && (e.from === id || e.to === id)))) setLens(LENSES[0], false); }
+  try { history.replaceState(null, "", id ? `#${id}` : location.pathname + location.search); } catch {}
+  update();
+}
+
+function setLens(l, redraw = true) {
+  lens = l;
+  document.querySelectorAll("#lenses .chip").forEach(c => c.setAttribute("aria-pressed", c.dataset.lens === l.id));
+  if (redraw) update();
+}
+
+function buildLenses() {
+  const box = $("#lenses");
+  LENSES.forEach(l => {
+    const b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.dataset.lens = l.id;
+    const sw = l.id === "all" ? "" : `<span class="swatch" style="background:${EDGE_TYPES[l.types[0]].color}"></span>`;
+    b.innerHTML = sw + "<span></span>"; b.querySelector("span:last-child").textContent = l.name;
+    b.addEventListener("click", () => { selected = null; setLens(l); });
+    box.append(b);
+  });
+  setLens(LENSES[0], false);
+}
+
+function buildTables() {
+  const rt = $("#repoTable");
+  rt.innerHTML = "<thead><tr><th>Repository</th><th>Owns</th><th>Delivered by</th><th>Feeds</th><th>Reads from</th></tr></thead>";
+  const rb = document.createElement("tbody");
+  MODEL.repos.forEach(r => {
+    const tr = document.createElement("tr");
+    [r.repo, r.owns, r.deliveredBy, r.feeds, r.readsFrom].forEach((v, i) => {
+      const td = document.createElement("td");
+      if (i === 0) { const a = document.createElement("a"); a.href = `https://github.com/rdcsung/${v}`; a.textContent = v; a.style.color = "var(--accent)"; td.append(a); }
+      else td.textContent = v;
+      tr.append(td);
+    });
+    rb.append(tr);
+  });
+  rt.append(rb);
+
+  const st = $("#secretTable");
+  st.innerHTML = "<thead><tr><th>Namespace</th><th>Secret</th><th>Vault path</th><th>Keys</th><th>Used by</th></tr></thead>";
+  const sb = document.createElement("tbody");
+  MODEL.secrets.forEach(([ns, name, keys, use]) => {
+    const tr = document.createElement("tr");
+    [ns, name, `secret/k8s/${ns}/${name}`, keys, use].forEach((v, i) => {
+      const td = document.createElement("td");
+      if (i === 1 || i === 2) { const c = document.createElement("code"); c.textContent = v; td.append(c); } else td.textContent = v;
+      tr.append(td);
+    });
+    sb.append(tr);
+  });
+  st.append(sb);
+
+  const kt = $("#kvTable");
+  kt.innerHTML = "<thead><tr><th>Component</th><th>Key</th><th>Value</th></tr></thead>";
+  const kb = document.createElement("tbody");
+  MODEL.nodes.forEach(n => Object.entries(n.kv || {}).forEach(([k, v]) => {
+    const tr = document.createElement("tr");
+    tr.dataset.hay = `${n.label} ${k} ${v}`.toLowerCase();
+    const a = document.createElement("td"); const b = document.createElement("button");
+    b.type = "button"; b.textContent = n.label; b.className = "chip";
+    b.addEventListener("click", () => { showTab("map"); select(n.id); });
+    a.append(b);
+    const kk = document.createElement("td"); kk.textContent = k;
+    const vv = document.createElement("td"); const c = document.createElement("code"); c.textContent = v; vv.append(c);
+    tr.append(a, kk, vv); kb.append(tr);
+  }));
+  kt.append(kb);
+  $("#kvSearch").addEventListener("input", e => {
+    const q = e.target.value.trim().toLowerCase();
+    kb.querySelectorAll("tr").forEach(tr => tr.hidden = q && !tr.dataset.hay.includes(q));
+  });
+
+  const log = $("#log");
+  MODEL.changelog.forEach(c => { const li = document.createElement("li"); li.textContent = c; log.append(li); });
+  $("#meta").textContent = `Last updated ${MODEL.updated} · ${MODEL.nodes.length} components · ${MODEL.edges.length} relations`;
+}
+
+function showTab(id) {
+  document.querySelectorAll("nav.tabs [data-tab]").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === id));
+  document.querySelectorAll("[data-panel]").forEach(s => s.hidden = s.dataset.panel !== id);
+}
+
+document.querySelectorAll("nav.tabs [data-tab]").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
+svg.addEventListener("click", () => select(null));
+$("#search").addEventListener("input", e => { query = e.target.value.trim().toLowerCase(); update(); });
+$("#themeBtn").addEventListener("click", () => {
+  const root = document.documentElement;
+  const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  root.dataset.theme = dark ? "light" : "dark";
+});
+
+buildLenses(); buildTables(); render();
+const start = location.hash.slice(1);
+if (byId[start]) select(start);
+</script>
+</body>
+</html>
