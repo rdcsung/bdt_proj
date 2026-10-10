@@ -251,13 +251,17 @@ Decided (2026-10-10):
 
 ### AZ phase 1: minimum viable authorization
 
-- [ ] **AZ-101 API audience.** Add a `bdt-api` audience (client or
+Brief: [access control](docs/briefs/access-control.md). AZ-101 – AZ-104,
+AZ-201 – AZ-203 and AZ-205 are deployed to dev (47f061a, 2026-10-10);
+a logged-in check in dev is still pending. qa/prod not promoted.
+
+- [~] **AZ-101 API audience.** Add a `bdt-api` audience (client or
   mapper) in realm `bdt` so frontend tokens carry `aud: bdt-api`; turn
   audience verification on in `auth.py`.
-- [ ] **AZ-102 Platform roles.** Create `bdt-platform-admin` and
+- [~] **AZ-102 Platform roles.** Create `bdt-platform-admin` and
   `bdt-user` in the realm, map them into the token, and expose them on the
   current user in the backend. New users get `bdt-user` by default.
-- [ ] **AZ-103 BDT database.** Create the `bdt` database and login role
+- [~] **AZ-103 BDT database.** Create the `bdt` database and login role
   on the shared `postgres`, with credentials (Vault → External Secrets),
   wire the backend to it via SQLAlchemy, add Alembic migrations run
   before the backend starts. Tables: `bdt_users` (unique `keycloak_issuer` +
@@ -265,29 +269,29 @@ Decided (2026-10-10):
   `project_memberships` (`user_id`, `project_id`, `role` ∈ viewer /
   engineer / project_admin). No passwords or identity data beyond what
   is needed.
-- [ ] **AZ-104 Resolve the current user.** `get_current_user` maps the
+- [~] **AZ-104 Resolve the current user.** `get_current_user` maps the
   validated token's `iss` + `sub` (never email or username) to a
   `bdt_users` row, creating it on first login.
 
 ### AZ phase 2: project-level access
 
-- [ ] **AZ-201 Projects for existing data.** Create the two first
+- [~] **AZ-201 Projects for existing data.** Create the two first
   projects: NASA PCoE (the `nasa_pcoe_battery` gold data) and the
   synthetic vehicle fleet. Move their routes to
   `/api/projects/{key}/...`, switch the dashboard, and delete the old
   `/api/batteries` and `/api/vehicles` routes.
-- [ ] **AZ-202 Enforce on every protected route.** A
+- [~] **AZ-202 Enforce on every protected route.** A
   `require_project_role(...)` dependency on all project-scoped routes;
   identity only from the token, never from the request. Non-member →
   404, member with too low a role → 403. Platform admins pass every
   project check.
-- [ ] **AZ-203 Allowed/denied tests.** For each route and role, a test
+- [~] **AZ-203 Allowed/denied tests.** For each route and role, a test
   that the permitted role gets through, lower roles get 403 and
   non-members get 404, plus no membership, expired token, wrong issuer, wrong audience.
 - [ ] **AZ-204 Membership management.** API for a project admin to add,
   change and remove members of their project; platform admin manages all
   projects.
-- [ ] **AZ-205 Dashboard follows permissions.** Project switcher shows
+- [~] **AZ-205 Dashboard follows permissions.** Project switcher shows
   only the user's projects; actions the role doesn't allow are hidden.
   Usability only, the backend stays the security boundary.
 
