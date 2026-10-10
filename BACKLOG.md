@@ -294,7 +294,8 @@ open until a non-admin account is checked. qa/prod not promoted.
   change and remove members of their project; platform admin manages all
   projects.
   *API `/api/projects/{key}/members` (+ `/api/admin/users` for platform
-  admins) and an Admin tab in the dashboard; bdt PR #3, not merged yet.*
+  admins) and an Admin tab in the dashboard. Deployed to dev (af47230,
+  2026-10-10); check against the live API pending.*
 - [~] **AZ-205 Dashboard follows permissions.** Project switcher shows
   only the user's projects; actions the role doesn't allow are hidden.
   Usability only, the backend stays the security boundary.

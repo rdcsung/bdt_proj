@@ -120,7 +120,9 @@ show data; the `bdt_users` row was created at first login.
 - Dashboard: Admin tab (`#admin`) for anyone who is project admin
   somewhere.
 - Tests: backend 51 passed (SQLite and Postgres 16), frontend 25 passed;
-  Admin tab rendered headless with stubbed data. bdt PR #3.
+  Admin tab rendered headless with stubbed data. Merged (bdt #3) and
+  deployed to dev as af47230; `/api/health` ok, member routes 403 without
+  a token.
 
 ## Next
 
