@@ -245,9 +245,9 @@ Decided (2026-10-10):
   or Job).
 - **Denied access:** `404` for a project the user is not a member of
   (doesn't reveal it exists); `403` for a member whose role is too low.
-
-Decisions needed: how existing `/api/batteries` and `/api/vehicles` routes move
-under projects without breaking the dashboard.
+- **Routes:** project-scoped routes `/api/projects/{key}/...` replace
+  `/api/batteries` and `/api/vehicles`; the old routes are removed in the
+  same change as the dashboard switch (home lab, no other consumers).
 
 ### AZ phase 1: minimum viable authorization
 
@@ -273,7 +273,9 @@ under projects without breaking the dashboard.
 
 - [ ] **AZ-201 Projects for existing data.** Create the two first
   projects: NASA PCoE (the `nasa_pcoe_battery` gold data) and the
-  synthetic vehicle fleet, and scope their routes to them.
+  synthetic vehicle fleet. Move their routes to
+  `/api/projects/{key}/...`, switch the dashboard, and delete the old
+  `/api/batteries` and `/api/vehicles` routes.
 - [ ] **AZ-202 Enforce on every protected route.** A
   `require_project_role(...)` dependency on all project-scoped routes;
   identity only from the token, never from the request. Non-member →
