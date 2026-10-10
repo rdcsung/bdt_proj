@@ -252,8 +252,8 @@ Decided (2026-10-10):
 ### AZ phase 1: minimum viable authorization
 
 Brief: [access control](docs/briefs/access-control.md). AZ-101 – AZ-104,
-AZ-201 – AZ-203 and AZ-205 are built and tested locally (2026-10-10); not
-yet deployed.
+AZ-201 – AZ-203 and AZ-205 are deployed to dev (47f061a, 2026-10-10);
+a logged-in check in dev is still pending. qa/prod not promoted.
 
 - [~] **AZ-101 API audience.** Add a `bdt-api` audience (client or
   mapper) in realm `bdt` so frontend tokens carry `aud: bdt-api`; turn

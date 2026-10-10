@@ -257,11 +257,11 @@ const MODEL = {
     // ---- apps
     { id: "frontend", lane: "apps", label: "Dashboard frontend", sub: "React SPA (nginx)", kind: "App (k3s, ns battery-dashboard-*)",
       desc: "Battery SOH dashboard UI: simulated fleet view and NASA test cells view (Battery Twin card, SOH chart). nginx serves the SPA and proxies /api to the backend.",
-      kv: { "Image": "bdt-frontend:<sha>", "URLs": "https://battery-{dev,qa,prod}.k3s.home", "Views": "#fleet (default), #nasa, #nasa/<battery>; tabs only for the user's projects", "Auth": "keycloak-js, login-required", "dev tag": "cf19aef", "qa/prod tag": "8290b40" },
+      kv: { "Image": "bdt-frontend:<sha>", "URLs": "https://battery-{dev,qa,prod}.k3s.home", "Views": "#fleet (default), #nasa, #nasa/<battery>; tabs only for the user's projects", "Auth": "keycloak-js, login-required", "dev tag": "47f061a", "qa/prod tag": "8290b40" },
       src: "bdt/frontend; bdt-gitops base/frontend-deployment.yaml" },
     { id: "backend", lane: "apps", label: "Dashboard backend", sub: "FastAPI", kind: "App (k3s, ns battery-dashboard-*)",
       desc: "Serves synthetic vehicle data and the NASA gold tables, each owned by a project. Verifies Keycloak tokens (iss, aud bdt-api, exp, platform role), resolves the user by iss+sub, checks project membership (404 non-member, 403 role too low). Reads gold via _latest.json, refreshes every 5 min.",
-      kv: { "Image": "bdt-backend:<sha>", "Routes": "/api/health, /api/me, /api/projects[/{key}], /api/projects/vehicle-fleet/vehicles/*, /api/projects/nasa-pcoe/batteries[/{id}[/soh]] (old /api/vehicles, /api/batteries removed)", "Projects": "nasa-pcoe, vehicle-fleet; roles viewer < engineer < project_admin", "DATABASE_URL": "from Secret bdt-db (components/bdt-db; dev)", "Migrations": "init container migrate: alembic upgrade head", "NASA_S3_ENDPOINT": "http://192.168.50.10:9000", "NASA_S3_BUCKET / PREFIX": "bdt-lake / gold/nasa_pcoe_battery", "NASA_S3_ACCESS_KEY / SECRET_KEY": "from Secret nasa-gold-s3 (optional; dev only)", "KEYCLOAK_ISSUER": "https://keycloak.192-168-50-10.sslip.io/realms/bdt", "dev tag": "cf19aef", "qa/prod tag": "8290b40 (no NASA routes yet)" },
+      kv: { "Image": "bdt-backend:<sha>", "Routes": "/api/health, /api/me, /api/projects[/{key}], /api/projects/vehicle-fleet/vehicles/*, /api/projects/nasa-pcoe/batteries[/{id}[/soh]] (old /api/vehicles, /api/batteries removed)", "Projects": "nasa-pcoe, vehicle-fleet; roles viewer < engineer < project_admin", "DATABASE_URL": "from Secret bdt-db (components/bdt-db; dev only)", "Migrations": "init container migrate: alembic upgrade head", "NASA_S3_ENDPOINT": "http://192.168.50.10:9000", "NASA_S3_BUCKET / PREFIX": "bdt-lake / gold/nasa_pcoe_battery", "NASA_S3_ACCESS_KEY / SECRET_KEY": "from Secret nasa-gold-s3 (optional; dev only)", "KEYCLOAK_ISSUER": "https://keycloak.192-168-50-10.sslip.io/realms/bdt", "dev tag": "47f061a", "qa/prod tag": "8290b40 (no NASA routes yet)" },
       src: "bdt/backend; bdt-gitops base/backend-deployment.yaml" },
     { id: "airflow", lane: "apps", label: "Airflow", sub: "pipelines (3.2.2)", kind: "App (k3s, ns airflow)",
       desc: "Runs the bdt_pipeline DAGs. LocalExecutor; api-server, scheduler, dag-processor, triggerer, all pinned to odin. DAGs arrive by git-sync.",
@@ -399,7 +399,7 @@ const MODEL = {
     ["battery-dashboard-prod", "bdt-db", "database-url", "bdt_prod (used once prod includes components/bdt-db)"],
   ],
   changelog: [
-    "2026-10-10: authorization (AZ-101..AZ-203, AZ-205): bdt-api audience and platform roles in Keycloak, BDT databases on the shared postgres, project-scoped API routes, bdt-db Secret and migrate init container (dev). Rollout pending: scripts to run, PRs to merge.",
+    "2026-10-10: authorization (AZ-101..AZ-203, AZ-205): bdt-api audience and platform roles in Keycloak, BDT databases on the shared postgres, project-scoped API routes, bdt-db Secret and migrate init container (dev). Live in dev (47f061a, migration 0001 applied to bdt_dev); qa/prod still on 8290b40.",
     "2026-10-09: first version. Phase 1 (NASA silver/gold, /api/batteries, NASA view) live in dev; secrets moved to Vault + External Secrets; read-only MinIO key for the dashboard.",
   ],
 };

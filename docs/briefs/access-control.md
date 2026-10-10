@@ -94,6 +94,14 @@ memberships in the BDT database.
 5. Log in to https://battery-dev.k3s.home: both tabs visible (platform
    admin). Check `/api/me`.
 
+Done 2026-10-10: steps 1–4. Keycloak checked (mapper set, example token
+for sungang76@gmail.com has `aud: [bdt-api, account]` and
+`bdt-platform-admin`); `bdt-db` synced in dev; CI run for 47f061a green;
+the `migrate` init container applied `0001` to `bdt_dev` (projects
+`nasa-pcoe`, `vehicle-fleet`). Through the dev ingress: `/api/health`
+200, `/api/me` 403 without a token and 401 with a bad one, old
+`/api/batteries` 404. Step 5 (a logged-in check) is still to do.
+
 ## Done when
 
 - [ ] Steps 1–5 done; dev serves the project routes with a real login.
