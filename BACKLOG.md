@@ -290,9 +290,11 @@ open until a non-admin account is checked. qa/prod not promoted.
 - [x] **AZ-203 Allowed/denied tests.** For each route and role, a test
   that the permitted role gets through, lower roles get 403 and
   non-members get 404, plus no membership, expired token, wrong issuer, wrong audience.
-- [ ] **AZ-204 Membership management.** API for a project admin to add,
+- [~] **AZ-204 Membership management.** API for a project admin to add,
   change and remove members of their project; platform admin manages all
   projects.
+  *API `/api/projects/{key}/members` (+ `/api/admin/users` for platform
+  admins) and an Admin tab in the dashboard; bdt PR #3, not merged yet.*
 - [~] **AZ-205 Dashboard follows permissions.** Project switcher shows
   only the user's projects; actions the role doesn't allow are hidden.
   Usability only, the backend stays the security boundary.
