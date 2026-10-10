@@ -110,7 +110,20 @@ show data; the `bdt_users` row was created at first login.
       it was given.
 - [ ] qa/prod: promoted together with `components/bdt-db` in their overlay.
 
+## AZ-204: member management (2026-10-10)
+
+- API: `GET/POST /api/projects/{key}/members`, `PUT/DELETE
+  /api/projects/{key}/members/{user_id}` for project admins (and platform
+  admins); `GET /api/admin/users` for platform admins. Add by email once
+  the person has logged in; a project admin can't remove or demote the
+  last project admin (409).
+- Dashboard: Admin tab (`#admin`) for anyone who is project admin
+  somewhere.
+- Tests: backend 51 passed (SQLite and Postgres 16), frontend 25 passed;
+  Admin tab rendered headless with stubbed data. Merged (bdt #3) and
+  deployed to dev as af47230; `/api/health` ok, member routes 403 without
+  a token.
+
 ## Next
 
-AZ-204 (membership management API), then AZ phase 3 (audit events,
-workload identities).
+AZ phase 3 (audit events, workload identities).
