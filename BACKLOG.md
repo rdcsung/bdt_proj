@@ -234,12 +234,16 @@ and expiry but not audience (`verify_aud: False`, public client
 app database yet; `bdt-gitops/platform/postgres` is a general-purpose
 instance.
 
-Decisions needed: where the BDT tables live (a `bdt` database on the
-general-purpose `postgres`, or a dedicated `bdt-postgres`); migration tool;
-what a "project" is for the existing data (e.g. `nasa_pcoe_battery`, the
-synthetic fleet); 403 vs 404 for projects the user can't see; how
-existing `/api/batteries` and `/api/vehicles` routes move under projects
-without breaking the dashboard.
+Decided (2026-10-10):
+
+- **Database:** a `bdt` database on the shared `postgres` instance
+  (`bdt-gitops/platform/postgres`, ns `postgres`), with its own login role.
+- **Projects:** NASA PCoE data (`/api/batteries`) is one project, the
+  synthetic vehicle fleet (`/api/vehicles`) is another.
+
+Decisions needed: migration tool; 403 vs 404 for projects the user
+can't see; how existing `/api/batteries` and `/api/vehicles` routes move
+under projects without breaking the dashboard.
 
 ### AZ phase 1: minimum viable authorization
 
@@ -249,8 +253,8 @@ without breaking the dashboard.
 - [ ] **AZ-102 Platform roles.** Create `bdt-platform-admin` and
   `bdt-user` in the realm, map them into the token, and expose them on the
   current user in the backend. New users get `bdt-user` by default.
-- [ ] **AZ-103 BDT database.** Provision the app database and its
-  credentials (Vault → External Secrets), wire the backend to it, add
+- [ ] **AZ-103 BDT database.** Create the `bdt` database and login role
+  on the shared `postgres`, with credentials (Vault → External Secrets), wire the backend to it, add
   migrations. Tables: `bdt_users` (unique `keycloak_issuer` +
   `keycloak_sub`), `projects` (`project_key`, `name`),
   `project_memberships` (`user_id`, `project_id`, `role` ∈ viewer /
@@ -262,8 +266,9 @@ without breaking the dashboard.
 
 ### AZ phase 2: project-level access
 
-- [ ] **AZ-201 Projects for existing data.** Create the first projects
-  and assign the existing datasets to them (per the decision above).
+- [ ] **AZ-201 Projects for existing data.** Create the two first
+  projects: NASA PCoE (the `nasa_pcoe_battery` gold data) and the
+  synthetic vehicle fleet, and scope their routes to them.
 - [ ] **AZ-202 Enforce on every protected route.** A
   `require_project_role(...)` dependency on all project-scoped routes;
   identity only from the token, never from the request. Platform admins
