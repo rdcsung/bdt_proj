@@ -203,6 +203,100 @@ Goal: natural-language analysis on top of the twin. Only after Phases 2–4 work
   (read-write MinIO key) lives in Airflow's DB; use Airflow's Vault
   secrets backend instead.
 
+## Access control (authorization)
+
+Goal: a valid login no longer means access to everything. Keycloak says
+*who* the user is; the `bdt` backend decides *what* they may do, using
+project memberships stored in Postgres. All data access stays behind the
+backend; the browser never gets S3 credentials.
+
+Two levels:
+
+- **Platform roles in Keycloak** (realm `bdt`): `bdt-platform-admin`,
+  `bdt-user`, `bdt-service-account` (only if needed). Platform admin is
+  kept separate from project admin.
+- **Project roles in Postgres:** `viewer`, `engineer`, `project_admin`
+  per user per project. Project memberships are not Keycloak roles.
+
+Proposed policy (adjust as needed):
+
+| Action | viewer | engineer | project_admin |
+|---|:-:|:-:|:-:|
+| View battery datasets | ✓ | ✓ | ✓ |
+| Run analysis | – | ✓ | ✓ |
+| Upload a dataset | – | ✓ | ✓ |
+| Delete a dataset | – | – | ✓ |
+| Manage project members | – | – | ✓ |
+
+Today (2026-10-10): `bdt/backend/app/auth.py` checks signature, issuer
+and expiry but not audience (`verify_aud: False`, public client
+`bdt-frontend` has no audience mapper), and reads no roles. There is no
+app database yet; `bdt-gitops/platform/postgres` is a general-purpose
+instance.
+
+Decisions needed: where the BDT tables live (a `bdt` database on the
+general-purpose `postgres`, or a dedicated `bdt-postgres`); migration tool;
+what a "project" is for the existing data (e.g. `nasa_pcoe_battery`, the
+synthetic fleet); 403 vs 404 for projects the user can't see; how
+existing `/api/batteries` and `/api/vehicles` routes move under projects
+without breaking the dashboard.
+
+### AZ phase 1: minimum viable authorization
+
+- [ ] **AZ-101 API audience.** Add a `bdt-api` audience (client or
+  mapper) in realm `bdt` so frontend tokens carry `aud: bdt-api`; turn
+  audience verification on in `auth.py`.
+- [ ] **AZ-102 Platform roles.** Create `bdt-platform-admin` and
+  `bdt-user` in the realm, map them into the token, and expose them on the
+  current user in the backend. New users get `bdt-user` by default.
+- [ ] **AZ-103 BDT database.** Provision the app database and its
+  credentials (Vault → External Secrets), wire the backend to it, add
+  migrations. Tables: `bdt_users` (unique `keycloak_issuer` +
+  `keycloak_sub`), `projects` (`project_key`, `name`),
+  `project_memberships` (`user_id`, `project_id`, `role` ∈ viewer /
+  engineer / project_admin). No passwords or identity data beyond what
+  is needed.
+- [ ] **AZ-104 Resolve the current user.** `get_current_user` maps the
+  validated token's `iss` + `sub` (never email or username) to a
+  `bdt_users` row, creating it on first login.
+
+### AZ phase 2: project-level access
+
+- [ ] **AZ-201 Projects for existing data.** Create the first projects
+  and assign the existing datasets to them (per the decision above).
+- [ ] **AZ-202 Enforce on every protected route.** A
+  `require_project_role(...)` dependency on all project-scoped routes;
+  identity only from the token, never from the request. Platform admins
+  pass every project check.
+- [ ] **AZ-203 Allowed/denied tests.** For each route and role, a test
+  that the permitted role gets through and the others get 403 (or 404),
+  plus no membership, expired token, wrong issuer, wrong audience.
+- [ ] **AZ-204 Membership management.** API for a project admin to add,
+  change and remove members of their project; platform admin manages all
+  projects.
+- [ ] **AZ-205 Dashboard follows permissions.** Project switcher shows
+  only the user's projects; actions the role doesn't allow are hidden.
+  Usability only, the backend stays the security boundary.
+
+### AZ phase 3: data and operational security
+
+- [ ] **AZ-301 Audit events.** `audit_events` table (actor, action,
+  resource, time, outcome) written for membership changes, dataset
+  deletion, model deployment and denied access; append-only for the app
+  role.
+- [ ] **AZ-302 Pipeline workload identity.** Airflow uses its own
+  credentials scoped to the buckets/prefixes each DAG needs, never a human
+  user's token. Goes with PL-3.
+- [ ] **AZ-303 Least-privilege service accounts.** Review every MinIO key
+  and Keycloak client: one per workload, minimal policy, stored in Vault.
+
+### AZ phase 4: only when a real use case needs it
+
+- [ ] **AZ-401 Finer-grained access.** Dataset-level permissions,
+  temporary access, approval workflows or attribute-based policies; S3
+  bucket policies or catalog authorization (if Iceberg is adopted) as a
+  second enforcement layer.
+
 ## Ideas / later
 
 - Other data sets beside NASA under the same `bdt-lake` layout (other PCoE
