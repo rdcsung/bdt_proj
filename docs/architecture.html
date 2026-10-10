@@ -169,7 +169,7 @@
    edges: from, to, type (see EDGE_TYPES), label, kv (optional).
    =================================================================== */
 const MODEL = {
-  updated: "2026-10-09",
+  updated: "2026-10-10",
   lanes: [
     { id: "outside",  title: "Outside" },
     { id: "repos",    title: "Repositories" },
@@ -243,25 +243,25 @@ const MODEL = {
       src: "bdt-gitops argocd/cert-manager-application.yaml, cluster/homelab-ca.yaml" },
     { id: "keycloak", lane: "platform", label: "Keycloak", sub: "login (OIDC)", kind: "Platform (k3s, ns keycloak)",
       desc: "Identity for the dashboard. Realm bdt, public client bdt-frontend with PKCE, Google as identity provider.",
-      kv: { "Image": "keycloak:26.0", "URL": "https://keycloak.192-168-50-10.sslip.io", "Realm": "bdt", "Client": "bdt-frontend (public, PKCE S256)", "JWKS (in-cluster)": "http://keycloak.keycloak.svc.cluster.local:8080/realms/bdt/…/certs", "DB": "keycloak-postgres", "Secrets": "keycloak-admin-creds, keycloak-postgres-creds" },
+      kv: { "Image": "keycloak:26.0", "URL": "https://keycloak.192-168-50-10.sslip.io", "Realm": "bdt", "Client": "bdt-frontend (public, PKCE S256)", "API audience": "client bdt-api; audience mapper on bdt-frontend (aud: bdt-api)", "Realm roles": "bdt-user (default role), bdt-platform-admin", "Authz setup": "bdt-infra scripts/keycloak-bdt-authz.sh", "JWKS (in-cluster)": "http://keycloak.keycloak.svc.cluster.local:8080/realms/bdt/…/certs", "DB": "keycloak-postgres", "Secrets": "keycloak-admin-creds, keycloak-postgres-creds" },
       src: "bdt-gitops platform/keycloak" },
     { id: "vault", lane: "platform", label: "Vault", sub: "secrets store", kind: "Platform (k3s, ns vault)",
       desc: "Source of truth for the hand-made Secrets. Standalone, file storage on a local-path PVC on odin. Re-seals on restart; unseal by hand. No backup yet (PL-2).",
       kv: { "Version": "2.0.4 (chart 0.34.1)", "UI": "https://vault.k3s.home", "In-cluster": "http://vault.vault.svc:8200", "KV engine": "secret/ (v2)", "Paths": "secret/k8s/<namespace>/<secret>", "Auth": "auth/kubernetes, role eso", "Policy": "eso-namespace (own namespace only)", "Injector": "installed, unused", "Backup": "none yet (PL-2)" },
       src: "bdt-gitops argocd/vault-application.yaml; bdt-infra docs/vault-secrets.md" },
     { id: "eso", lane: "platform", label: "External Secrets", sub: "Vault → Secrets", kind: "Platform (k3s, ns external-secrets)",
-      desc: "Syncs 15 Secrets from Vault into 7 namespaces. Each namespace has a vault-eso ServiceAccount and a SecretStore 'vault'.",
+      desc: "Syncs 18 Secrets from Vault into 7 namespaces. Each namespace has a vault-eso ServiceAccount and a SecretStore 'vault'.",
       kv: { "Version": "2.12.0", "Store": "SecretStore 'vault' per namespace", "Creation policy": "Orphan (pruning never deletes the Secret)", "Refresh": "1h (force: annotate force-sync)", "If Vault sealed": "existing Secrets stay; sync pauses" },
       src: "bdt-gitops argocd/external-secrets-application.yaml, components/vault-store, */external-secrets.yaml" },
 
     // ---- apps
     { id: "frontend", lane: "apps", label: "Dashboard frontend", sub: "React SPA (nginx)", kind: "App (k3s, ns battery-dashboard-*)",
       desc: "Battery SOH dashboard UI: simulated fleet view and NASA test cells view (Battery Twin card, SOH chart). nginx serves the SPA and proxies /api to the backend.",
-      kv: { "Image": "bdt-frontend:<sha>", "URLs": "https://battery-{dev,qa,prod}.k3s.home", "Views": "#fleet (default), #nasa, #nasa/<battery>", "Auth": "keycloak-js, login-required", "dev tag": "cf19aef", "qa/prod tag": "8290b40" },
+      kv: { "Image": "bdt-frontend:<sha>", "URLs": "https://battery-{dev,qa,prod}.k3s.home", "Views": "#fleet (default), #nasa, #nasa/<battery>; tabs only for the user's projects", "Auth": "keycloak-js, login-required", "dev tag": "cf19aef", "qa/prod tag": "8290b40" },
       src: "bdt/frontend; bdt-gitops base/frontend-deployment.yaml" },
     { id: "backend", lane: "apps", label: "Dashboard backend", sub: "FastAPI", kind: "App (k3s, ns battery-dashboard-*)",
-      desc: "Serves synthetic vehicle data and the NASA gold tables. Verifies Keycloak tokens. Reads gold via _latest.json, refreshes every 5 min.",
-      kv: { "Image": "bdt-backend:<sha>", "Routes": "/api/health, /api/vehicles/*, /api/batteries, /api/batteries/{id}, /api/batteries/{id}/soh", "NASA_S3_ENDPOINT": "http://192.168.50.10:9000", "NASA_S3_BUCKET / PREFIX": "bdt-lake / gold/nasa_pcoe_battery", "NASA_S3_ACCESS_KEY / SECRET_KEY": "from Secret nasa-gold-s3 (optional; dev only)", "KEYCLOAK_ISSUER": "https://keycloak.192-168-50-10.sslip.io/realms/bdt", "dev tag": "cf19aef", "qa/prod tag": "8290b40 (no NASA routes yet)" },
+      desc: "Serves synthetic vehicle data and the NASA gold tables, each owned by a project. Verifies Keycloak tokens (iss, aud bdt-api, exp, platform role), resolves the user by iss+sub, checks project membership (404 non-member, 403 role too low). Reads gold via _latest.json, refreshes every 5 min.",
+      kv: { "Image": "bdt-backend:<sha>", "Routes": "/api/health, /api/me, /api/projects[/{key}], /api/projects/vehicle-fleet/vehicles/*, /api/projects/nasa-pcoe/batteries[/{id}[/soh]] (old /api/vehicles, /api/batteries removed)", "Projects": "nasa-pcoe, vehicle-fleet; roles viewer < engineer < project_admin", "DATABASE_URL": "from Secret bdt-db (components/bdt-db; dev)", "Migrations": "init container migrate: alembic upgrade head", "NASA_S3_ENDPOINT": "http://192.168.50.10:9000", "NASA_S3_BUCKET / PREFIX": "bdt-lake / gold/nasa_pcoe_battery", "NASA_S3_ACCESS_KEY / SECRET_KEY": "from Secret nasa-gold-s3 (optional; dev only)", "KEYCLOAK_ISSUER": "https://keycloak.192-168-50-10.sslip.io/realms/bdt", "dev tag": "cf19aef", "qa/prod tag": "8290b40 (no NASA routes yet)" },
       src: "bdt/backend; bdt-gitops base/backend-deployment.yaml" },
     { id: "airflow", lane: "apps", label: "Airflow", sub: "pipelines (3.2.2)", kind: "App (k3s, ns airflow)",
       desc: "Runs the bdt_pipeline DAGs. LocalExecutor; api-server, scheduler, dag-processor, triggerer, all pinned to odin. DAGs arrive by git-sync.",
@@ -282,9 +282,9 @@ const MODEL = {
     { id: "pg_jfrog", lane: "data", label: "jfrog-postgres", sub: "JFrog DB", kind: "Database (k3s, ns jfrog)",
       desc: "Postgres 16 for JFrog JCR (no embedded Derby).", kv: { "Image": "postgres:16-alpine", "Secret": "jfrog-postgres-creds", "Node": "odin (local-path PVC)" },
       src: "bdt-gitops platform/jfrog/postgres.yaml" },
-    { id: "pg_shared", lane: "data", label: "postgres (shared)", sub: "ad-hoc databases", kind: "Database (k3s, ns postgres)",
-      desc: "General-purpose Postgres 16 for experiments, not tied to an app.",
-      kv: { "Address": "postgres.postgres.svc.cluster.local:5432", "Default DB": "app", "Secret": "postgres-creds", "Size": "10Gi local-path, odin" },
+    { id: "pg_shared", lane: "data", label: "postgres (shared)", sub: "ad-hoc + BDT databases", kind: "Database (k3s, ns postgres)",
+      desc: "General-purpose Postgres 16, not tied to an app. Also holds the BDT databases (users, projects, project memberships), one per environment.",
+      kv: { "Address": "postgres.postgres.svc.cluster.local:5432", "Default DB": "app", "BDT DBs": "bdt_dev, bdt_qa, bdt_prod (owner role of the same name; bdt-infra scripts/setup-bdt-db.sh)", "Secret": "postgres-creds", "Size": "10Gi local-path, odin" },
       src: "bdt-gitops platform/postgres, docs/postgres.md" },
 
     // ---- hosts
@@ -333,12 +333,13 @@ const MODEL = {
     { from: "eso", to: "keycloak", type: "secret", label: "2 Secrets" },
     { from: "eso", to: "jfrog", type: "secret", label: "2 Secrets" },
     { from: "eso", to: "pg_shared", type: "secret", label: "postgres-creds" },
-    { from: "eso", to: "backend", type: "secret", label: "nasa-gold-s3 (dev), jfrog-pull-secret ×3" },
+    { from: "eso", to: "backend", type: "secret", label: "nasa-gold-s3 (dev), jfrog-pull-secret ×3, bdt-db ×3" },
     // data
     { from: "nasa", to: "airflow", type: "data", label: "download zip (nasa_battery_ingest)" },
     { from: "airflow", to: "minio", type: "data", label: "landing → raw → bronze → silver → gold (minio_s3, rw)" },
     { from: "minio", to: "backend", type: "data", label: "read gold/ (nasa-gold-s3, read-only)" },
     { from: "airflow", to: "pg_airflow", type: "data", label: "metadata DB" },
+    { from: "backend", to: "pg_shared", type: "data", label: "bdt_<env>: users, projects, memberships (bdt-db)" },
     { from: "keycloak", to: "pg_keycloak", type: "data", label: "DB" },
     { from: "jfrog", to: "pg_jfrog", type: "data", label: "DB" },
     // auth & network
@@ -372,7 +373,7 @@ const MODEL = {
       deliveredBy: "git-sync from main into Airflow (no image build)", feeds: "MinIO bdt-lake (all layers)", readsFrom: "NASA PCoE data set" },
     { repo: "bdt-gitops", owns: "All in-cluster manifests: app overlays, platform services, ExternalSecrets, bootstrap Applications",
       deliveredBy: "Argo CD (automated sync, prune, selfHeal)", feeds: "every namespace except kube-system", readsFrom: "Vault (via ESO), JFrog images" },
-    { repo: "bdt-infra", owns: "Ansible for k3s nodes and MinIO on odin; rebuild runbook; Vault/ESO and MinIO-key scripts",
+    { repo: "bdt-infra", owns: "Ansible for k3s nodes and MinIO on odin; rebuild runbook; Vault/ESO, MinIO-key, BDT database and Keycloak authz scripts",
       deliveredBy: "ansible-playbook from thor; scripts run by hand on odin", feeds: "odin, thor, loki; Argo CD install", readsFrom: "Ansible vault (k3s token, MinIO root)" },
     { repo: "bdt_proj", owns: "Backlog, phase briefs, agent rules (AGENTS.md), data dictionary, this map",
       deliveredBy: "read by people and agents", feeds: "how work is done in the other four", readsFrom: "facts from all four repos + the cluster" },
@@ -391,10 +392,14 @@ const MODEL = {
     ["postgres", "postgres-creds", "username, password", "shared postgres"],
     ["battery-dashboard-dev", "jfrog-pull-secret", ".dockerconfigjson", "image pulls from JFrog"],
     ["battery-dashboard-dev", "nasa-gold-s3", "access-key, secret-key", "backend → MinIO gold/ (read-only user bdt-dashboard)"],
+    ["battery-dashboard-dev", "bdt-db", "database-url", "backend + migrate → bdt_dev on shared postgres"],
     ["battery-dashboard-qa", "jfrog-pull-secret", ".dockerconfigjson", "image pulls from JFrog"],
+    ["battery-dashboard-qa", "bdt-db", "database-url", "bdt_qa (used once qa includes components/bdt-db)"],
     ["battery-dashboard-prod", "jfrog-pull-secret", ".dockerconfigjson", "image pulls from JFrog"],
+    ["battery-dashboard-prod", "bdt-db", "database-url", "bdt_prod (used once prod includes components/bdt-db)"],
   ],
   changelog: [
+    "2026-10-10: authorization (AZ-101..AZ-203, AZ-205): bdt-api audience and platform roles in Keycloak, BDT databases on the shared postgres, project-scoped API routes, bdt-db Secret and migrate init container (dev). Rollout pending: scripts to run, PRs to merge.",
     "2026-10-09: first version. Phase 1 (NASA silver/gold, /api/batteries, NASA view) live in dev; secrets moved to Vault + External Secrets; read-only MinIO key for the dashboard.",
   ],
 };
