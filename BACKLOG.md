@@ -240,9 +240,13 @@ Decided (2026-10-10):
   (`bdt-gitops/platform/postgres`, ns `postgres`), with its own login role.
 - **Projects:** NASA PCoE data (`/api/batteries`) is one project, the
   synthetic vehicle fleet (`/api/vehicles`) is another.
+- **Migrations:** SQLAlchemy + Alembic in `bdt` (installed with `uv`);
+  `alembic upgrade head` runs before the backend starts (init container
+  or Job).
+- **Denied access:** `404` for a project the user is not a member of
+  (doesn't reveal it exists); `403` for a member whose role is too low.
 
-Decisions needed: migration tool; 403 vs 404 for projects the user
-can't see; how existing `/api/batteries` and `/api/vehicles` routes move
+Decisions needed: how existing `/api/batteries` and `/api/vehicles` routes move
 under projects without breaking the dashboard.
 
 ### AZ phase 1: minimum viable authorization
@@ -254,8 +258,9 @@ under projects without breaking the dashboard.
   `bdt-user` in the realm, map them into the token, and expose them on the
   current user in the backend. New users get `bdt-user` by default.
 - [ ] **AZ-103 BDT database.** Create the `bdt` database and login role
-  on the shared `postgres`, with credentials (Vault → External Secrets), wire the backend to it, add
-  migrations. Tables: `bdt_users` (unique `keycloak_issuer` +
+  on the shared `postgres`, with credentials (Vault → External Secrets),
+  wire the backend to it via SQLAlchemy, add Alembic migrations run
+  before the backend starts. Tables: `bdt_users` (unique `keycloak_issuer` +
   `keycloak_sub`), `projects` (`project_key`, `name`),
   `project_memberships` (`user_id`, `project_id`, `role` ∈ viewer /
   engineer / project_admin). No passwords or identity data beyond what
@@ -271,11 +276,12 @@ under projects without breaking the dashboard.
   synthetic vehicle fleet, and scope their routes to them.
 - [ ] **AZ-202 Enforce on every protected route.** A
   `require_project_role(...)` dependency on all project-scoped routes;
-  identity only from the token, never from the request. Platform admins
-  pass every project check.
+  identity only from the token, never from the request. Non-member →
+  404, member with too low a role → 403. Platform admins pass every
+  project check.
 - [ ] **AZ-203 Allowed/denied tests.** For each route and role, a test
-  that the permitted role gets through and the others get 403 (or 404),
-  plus no membership, expired token, wrong issuer, wrong audience.
+  that the permitted role gets through, lower roles get 403 and
+  non-members get 404, plus no membership, expired token, wrong issuer, wrong audience.
 - [ ] **AZ-204 Membership management.** API for a project admin to add,
   change and remove members of their project; platform admin manages all
   projects.
