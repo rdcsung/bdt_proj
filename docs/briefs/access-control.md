@@ -100,11 +100,12 @@ for sungang76@gmail.com has `aud: [bdt-api, account]` and
 the `migrate` init container applied `0001` to `bdt_dev` (projects
 `nasa-pcoe`, `vehicle-fleet`). Through the dev ingress: `/api/health`
 200, `/api/me` 403 without a token and 401 with a bad one, old
-`/api/batteries` 404. Step 5 (a logged-in check) is still to do.
+`/api/batteries` 404. Step 5: logged in as sungang76@gmail.com (platform admin), both tabs
+show data; the `bdt_users` row was created at first login.
 
 ## Done when
 
-- [ ] Steps 1–5 done; dev serves the project routes with a real login.
+- [x] Steps 1–5 done; dev serves the project routes with a real login.
 - [ ] A non-admin Google account sees no projects, then only the project
       it was given.
 - [ ] qa/prod: promoted together with `components/bdt-db` in their overlay.
