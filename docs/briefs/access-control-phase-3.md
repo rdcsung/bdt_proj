@@ -95,6 +95,6 @@ broader than needed gets a backlog item or is fixed in place.
 - [x] AZ-302: both DAGs run green with their own keys; each key is
       refused outside its prefixes; `airflow` key and `minio_s3`
       connection removed.
-- [ ] AZ-303: inventory written; every credential is per workload, minimal
+- [x] AZ-303: inventory written; every credential is per workload, minimal
       and in Vault, or has a backlog item.
-- [ ] Platform map updated with each change.
+- [x] Platform map updated with each change.

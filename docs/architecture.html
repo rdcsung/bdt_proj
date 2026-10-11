@@ -227,7 +227,7 @@ const MODEL = {
       src: "github.com/rdcsung/bdt-gitops" },
     { id: "r_infra", lane: "repos", label: "bdt-infra", sub: "Ansible + runbooks", kind: "Repository",
       desc: "Owns the cluster's existence: Ubuntu, k3s, Argo CD bootstrap, MinIO (Silo) on odin; the full rebuild runbook; Vault/ESO and MinIO scripts.",
-      kv: { "Playbooks": "site, server, agent, argocd, minio", "Scripts": "vault-eso-setup.sh, setup-nasa-gold-key.sh, setup-pipeline-keys.sh", "Docs": "minio.md, vault-secrets.md" },
+      kv: { "Playbooks": "site, server, agent, argocd, minio", "Scripts": "vault-eso-setup.sh, setup-nasa-gold-key.sh, setup-pipeline-keys.sh", "Docs": "minio.md, vault-secrets.md, service-accounts.md (every workload credential: user, rights, where kept)" },
       src: "github.com/rdcsung/bdt-infra" },
     { id: "r_proj", lane: "repos", label: "bdt_proj", sub: "backlog, briefs, rules", kind: "Repository",
       desc: "Project backlog, phase briefs, agent rules (AGENTS.md), data dictionary and this map. No code.",
@@ -461,6 +461,7 @@ const MODEL = {
     ],
   },
   changelog: [
+    "2026-10-11: AZ-303: credential inventory in bdt-infra docs/service-accounts.md; follow-ups AZ-304 – AZ-311 in the backlog.",
     "2026-10-11: AZ-302/PL-3: one MinIO key per DAG (nasa-ingest, nasa-transform), connections from Vault as AIRFLOW_CONN_* env; old airflow key, bdt-lake-rw and minio_s3 removed.",
     "2026-10-11: AZ-301 audit log: append-only audit_events table (migration 0002, trigger), /api/projects/{key}/audit and /api/admin/audit, Activity section in #admin; live in dev (f6fd31a).",
     "2026-10-11: dashboard Account tab (#account) and richer /api/me; live in dev (78fcce4).",
