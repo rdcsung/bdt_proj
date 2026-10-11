@@ -28,8 +28,8 @@ in Vault.
   their project's events. Shown in the dashboard's Admin tab.
 - **D4 Retention:** keep everything for now (low volume); revisit if the
   table grows.
-- **D5 Airflow credentials (PL-3):** each Airflow connection is a URI in
-  Vault at `secret/k8s/airflow/<name>`, synced by External Secrets like
+- **D5 Airflow credentials (PL-3):** each Airflow connection is stored (as
+  Airflow's JSON form) in Vault at `secret/k8s/airflow/<name>`, synced by External Secrets like
   the other Airflow secrets and given to Airflow as an `AIRFLOW_CONN_<ID>`
   environment variable from the Helm values. No connection is kept in
   Airflow's metadata DB, and Airflow never logs in to Vault itself.
@@ -90,9 +90,9 @@ broader than needed gets a backlog item or is fixed in place.
 
 ## Done when
 
-- [ ] AZ-301: membership changes and refusals appear in the Activity
+- [x] AZ-301: membership changes and refusals appear in the Activity
       section in dev; an update or delete on `audit_events` fails.
-- [ ] AZ-302: both DAGs run green with their own keys; each key is
+- [x] AZ-302: both DAGs run green with their own keys; each key is
       refused outside its prefixes; `airflow` key and `minio_s3`
       connection removed.
 - [ ] AZ-303: inventory written; every credential is per workload, minimal
