@@ -301,6 +301,12 @@ check done 2026-10-11 (see AZ-204). qa/prod not promoted.
 - [x] **AZ-205 Dashboard follows permissions.** Project switcher shows
   only the user's projects; actions the role doesn't allow are hidden.
   Usability only, the backend stays the security boundary.
+- [x] **AZ-206 Account page.** Every signed-in user can see their
+  Keycloak identity (token claims, realm roles, sign-in and session
+  expiry) and their BDT access (platform roles, projects, role and where
+  it comes from).
+  *Dashboard `#account` and a richer `/api/me` (bdt #4). Deployed to dev
+  as 78fcce4 and checked with both accounts, 2026-10-11.*
 
 ### AZ phase 3: data and operational security
 
