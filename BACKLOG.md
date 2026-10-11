@@ -199,9 +199,11 @@ Goal: natural-language analysis on top of the twin. Only after Phases 2–4 work
   is now the source of truth for those Secrets and has no backup. Move to
   integrated storage (Raft) and take nightly `vault operator raft snapshot`
   to MinIO or thor; test a restore.
-- [ ] **PL-3 Airflow connections from Vault.** The `minio_s3` connection
+- [x] **PL-3 Airflow connections from Vault.** The `minio_s3` connection
   (read-write MinIO key) lives in Airflow's DB; use Airflow's Vault
-  secrets backend instead.
+  secrets backend instead. Done with AZ-302 another way (decision D5):
+  connections are kept in Vault and given to Airflow as `AIRFLOW_CONN_*`
+  env vars through External Secrets; `minio_s3` removed 2026-10-11.
 
 ## Access control (authorization)
 
@@ -319,9 +321,12 @@ decisions D1–D6 agreed 2026-10-11.
   role. Done for membership changes and refusals (dataset deletion and
   model deployment once those routes exist); Activity section in the Admin
   tab. Verified in dev (f6fd31a) 2026-10-11.
-- [ ] **AZ-302 Pipeline workload identity.** Airflow uses its own
+- [x] **AZ-302 Pipeline workload identity.** Airflow uses its own
   credentials scoped to the buckets/prefixes each DAG needs, never a human
-  user's token. Goes with PL-3.
+  user's token. Goes with PL-3. MinIO keys `nasa-ingest` and
+  `nasa-transform` (bdt-infra `scripts/setup-pipeline-keys.sh`), one
+  Airflow connection per DAG from Vault; old `airflow` key, `bdt-lake-rw`
+  policy and `minio_s3` removed. Both DAGs ran green 2026-10-11.
 - [ ] **AZ-303 Least-privilege service accounts.** Review every MinIO key
   and Keycloak client: one per workload, minimal policy, stored in Vault.
 

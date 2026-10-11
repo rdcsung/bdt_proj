@@ -52,7 +52,7 @@ Read the README of every repo you touch before changing it.
   tasks.
 - **Storage:** MinIO, bucket `bdt-lake`, through the DAG's own Airflow
   connection (one MinIO key per DAG, scoped to its prefixes; see the
-  access control phase 3 brief; `minio_s3` until AZ-302 is done), layout `<layer>/<dataset>/ingest_date=<date>/...`. Every task
+  access control phase 3 brief), layout `<layer>/<dataset>/ingest_date=<date>/...`. Every task
   is idempotent: re-running a date replaces that date's output.
 - **Config, not constants:** bucket, prefixes, dataset version and model
   location come from params/config, never hard-coded paths.
