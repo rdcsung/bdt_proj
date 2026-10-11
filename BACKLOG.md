@@ -327,11 +327,10 @@ decisions D1–D6 agreed 2026-10-11.
   `nasa-transform` (bdt-infra `scripts/setup-pipeline-keys.sh`), one
   Airflow connection per DAG from Vault; old `airflow` key, `bdt-lake-rw`
   policy and `minio_s3` removed. Both DAGs ran green 2026-10-11.
-- [ ] **AZ-303 Least-privilege service accounts.** Review every MinIO key
+- [x] **AZ-303 Least-privilege service accounts.** Review every MinIO key
   and Keycloak client: one per workload, minimal policy, stored in Vault.
-  Inventory: bdt-infra `docs/service-accounts.md` (bdt-infra PR #4).
-  Everything broader than needed, or still unknown, is AZ-304 – AZ-311;
-  done once that inventory is merged.
+  Inventory: bdt-infra `docs/service-accounts.md` (merged 2026-10-11).
+  Everything broader than needed, or still unknown, is AZ-304 – AZ-311.
 
 #### AZ-303 follow-ups (from the inventory, 2026-10-11)
 
