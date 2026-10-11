@@ -106,8 +106,8 @@ show data; the `bdt_users` row was created at first login.
 ## Done when
 
 - [x] Steps 1–5 done; dev serves the project routes with a real login.
-- [ ] A non-admin Google account sees no projects, then only the project
-      it was given.
+- [x] A non-admin Google account sees no projects, then only the project
+      it was given (2026-10-11, added as NASA PCoE viewer via the Admin tab).
 - [ ] qa/prod: promoted together with `components/bdt-db` in their overlay.
 
 ## AZ-204: member management (2026-10-10)
