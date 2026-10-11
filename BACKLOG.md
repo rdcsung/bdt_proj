@@ -313,10 +313,12 @@ check done 2026-10-11 (see AZ-204). qa/prod not promoted.
 Brief: [access control phase 3](docs/briefs/access-control-phase-3.md),
 decisions D1–D6 agreed 2026-10-11.
 
-- [ ] **AZ-301 Audit events.** `audit_events` table (actor, action,
+- [x] **AZ-301 Audit events.** `audit_events` table (actor, action,
   resource, time, outcome) written for membership changes, dataset
   deletion, model deployment and denied access; append-only for the app
-  role.
+  role. Done for membership changes and refusals (dataset deletion and
+  model deployment once those routes exist); Activity section in the Admin
+  tab. Verified in dev (f6fd31a) 2026-10-11.
 - [ ] **AZ-302 Pipeline workload identity.** Airflow uses its own
   credentials scoped to the buckets/prefixes each DAG needs, never a human
   user's token. Goes with PL-3.

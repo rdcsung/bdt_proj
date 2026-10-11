@@ -90,7 +90,7 @@ broader than needed gets a backlog item or is fixed in place.
 
 ## Done when
 
-- [ ] AZ-301: membership changes and refusals appear in the Activity
+- [x] AZ-301: membership changes and refusals appear in the Activity
       section in dev; an update or delete on `audit_events` fails.
 - [ ] AZ-302: both DAGs run green with their own keys; each key is
       refused outside its prefixes; `airflow` key and `minio_s3`
