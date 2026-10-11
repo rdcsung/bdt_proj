@@ -329,6 +329,51 @@ decisions D1–D6 agreed 2026-10-11.
   policy and `minio_s3` removed. Both DAGs ran green 2026-10-11.
 - [ ] **AZ-303 Least-privilege service accounts.** Review every MinIO key
   and Keycloak client: one per workload, minimal policy, stored in Vault.
+  Inventory: bdt-infra `docs/service-accounts.md` (bdt-infra PR #4).
+  Everything broader than needed, or still unknown, is AZ-304 – AZ-311;
+  done once that inventory is merged.
+
+#### AZ-303 follow-ups (from the inventory, 2026-10-11)
+
+Findings (F) and open questions (Q) refer to `docs/service-accounts.md`
+in bdt-infra; update its table when an item is done.
+
+- [ ] **AZ-304 One dashboard MinIO key per environment (F1).**
+  `bdt-dashboard` is a single user; `setup-nasa-gold-key.sh <namespace>`
+  recreates it, so qa/prod would share dev's key and a rotation breaks the
+  others. Make it `bdt-dashboard-<env>`. Before qa/prod get the NASA key.
+- [ ] **AZ-305 Separate runtime database role for the backend (F2).**
+  The backend runs as `bdt_<env>`, the database owner, so it could drop
+  the audit trigger. Add `bdt_<env>_app` with `SELECT, INSERT, UPDATE,
+  DELETE` (only `SELECT, INSERT` on `audit_events`) for the backend; keep
+  the owner for the `migrate` init container. Script in bdt-infra, Secret
+  in Vault, wiring in bdt-gitops `components/bdt-db`. (Decision D1's
+  stronger option.)
+- [ ] **AZ-306 Non-superuser Postgres logins for Airflow, Keycloak, JFrog
+  (F3).** Each uses its instance's superuser; each instance holds only its
+  own database. Low priority.
+- [ ] **AZ-307 Delete `argocd-initial-admin-secret` (F4).** After checking
+  the Argo CD admin password was changed (or SSO is used):
+  `kubectl -n argocd delete secret argocd-initial-admin-secret`.
+- [ ] **AZ-308 Scoped Vault token for the setup scripts (F5).** A Vault
+  policy that can write `secret/k8s/*` only, and a token from it for
+  `setup-*.sh`; keep root for `vault-eso-setup.sh` and emergencies.
+- [ ] **AZ-309 Registry credentials (Q1, Q2).** Find which JFrog user is
+  behind `jfrog-pull-secret` (dev, qa, prod) and behind CI's
+  `JFROG_USERNAME`, and their permissions (Administration → User
+  Management). Target: `k8s-pull` with Read on `battery-docker-local`
+  only, in Vault for the three environments; a separate CI user with
+  Deploy on that repo only. A push test with the pull login must be
+  refused.
+- [ ] **AZ-310 Git credentials scope (Q3, Q4, Q5).** `GITOPS_REPO_TOKEN`
+  should be a fine-grained token for `rdcsung/bdt-gitops` (contents
+  read/write) only; Argo CD's `gitops-repo-creds` and the bdt_pipeline
+  deploy key (`airflow-git-ssh`) should be read-only. Check in GitHub
+  (Settings → Developer settings → tokens; each repo's Settings → Deploy
+  keys) and replace any that are broader.
+- [ ] **AZ-311 Keycloak bootstrap admin (Q6).** Check the first-boot admin
+  from `keycloak-admin-creds` was disabled or deleted after the named
+  admin was created (master realm → Users); if not, disable it.
 
 ### AZ phase 4: only when a real use case needs it
 
