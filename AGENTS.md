@@ -50,8 +50,9 @@ Read the README of every repo you touch before changing it.
 - **DAGs stay thin.** Logic goes in importable modules under `dags/`
   (like `nasa_battery/convert.py`) with unit tests; the DAG file only wires
   tasks.
-- **Storage:** MinIO via the Airflow connection `minio_s3`, bucket
-  `bdt-lake`, layout `<layer>/<dataset>/ingest_date=<date>/...`. Every task
+- **Storage:** MinIO, bucket `bdt-lake`, through the DAG's own Airflow
+  connection (one MinIO key per DAG, scoped to its prefixes; see the
+  access control phase 3 brief; `minio_s3` until AZ-302 is done), layout `<layer>/<dataset>/ingest_date=<date>/...`. Every task
   is idempotent: re-running a date replaces that date's output.
 - **Config, not constants:** bucket, prefixes, dataset version and model
   location come from params/config, never hard-coded paths.

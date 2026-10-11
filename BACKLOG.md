@@ -310,6 +310,9 @@ check done 2026-10-11 (see AZ-204). qa/prod not promoted.
 
 ### AZ phase 3: data and operational security
 
+Brief: [access control phase 3](docs/briefs/access-control-phase-3.md),
+decisions D1–D6 agreed 2026-10-11.
+
 - [ ] **AZ-301 Audit events.** `audit_events` table (actor, action,
   resource, time, outcome) written for membership changes, dataset
   deletion, model deployment and denied access; append-only for the app
