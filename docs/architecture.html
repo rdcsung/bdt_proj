@@ -110,6 +110,7 @@
     <button role="tab" aria-selected="true" data-tab="map">Map</button>
     <button role="tab" aria-selected="false" data-tab="repos">Repositories</button>
     <button role="tab" aria-selected="false" data-tab="secrets">Secrets</button>
+    <button role="tab" aria-selected="false" data-tab="access">Access control</button>
     <button role="tab" aria-selected="false" data-tab="kv">All key-values</button>
     <button role="tab" aria-selected="false" data-tab="about">Changelog &amp; upkeep</button>
     <button class="chip theme" id="themeBtn" type="button" title="Switch light/dark">◐ Theme</button>
@@ -142,6 +143,21 @@
       and Airflow's <code>minio_s3</code> connection (Airflow DB; backlog PL-3).</p>
   </section>
 
+  <section data-panel="access" hidden>
+    <p class="note">Keycloak says <em>who</em> someone is and whether they may use BDT at all; the BDT database says what they may do in
+      each project. The backend decides every request; the dashboard only hides what the backend would refuse.</p>
+    <h3>How a request is checked</h3>
+    <ol class="rules" id="accessSteps"></ol>
+    <h3>Roles</h3>
+    <div class="tablewrap"><table id="roleTable"></table></div>
+    <h3>Who may call what</h3>
+    <div class="tablewrap"><table id="routeTable"></table></div>
+    <h3>Giving someone access</h3>
+    <ol class="rules" id="grantSteps"></ol>
+    <h3>Where it lives</h3>
+    <div class="tablewrap"><table id="accessWhere"></table></div>
+  </section>
+
   <section data-panel="kv" hidden>
     <div class="toolbar"><input type="search" id="kvSearch" placeholder="Filter (component, key or value)"></div>
     <div class="tablewrap"><table id="kvTable"></table></div>
@@ -169,7 +185,7 @@
    edges: from, to, type (see EDGE_TYPES), label, kv (optional).
    =================================================================== */
 const MODEL = {
-  updated: "2026-10-10",
+  updated: "2026-10-11",
   lanes: [
     { id: "outside",  title: "Outside" },
     { id: "repos",    title: "Repositories" },
@@ -398,7 +414,48 @@ const MODEL = {
     ["battery-dashboard-prod", "jfrog-pull-secret", ".dockerconfigjson", "image pulls from JFrog"],
     ["battery-dashboard-prod", "bdt-db", "database-url", "bdt_prod (used once prod includes components/bdt-db)"],
   ],
+  access: {
+    steps: [
+      "Token: signature (Keycloak JWKS), iss = the bdt realm, aud includes bdt-api, not expired. Otherwise 401.",
+      "Platform role: the token's realm roles include bdt-user or bdt-platform-admin. Otherwise 403.",
+      "User: bdt_users row found by iss + sub (never by email), created on first request; name and email refreshed from the token.",
+      "Project: the project exists and the user is a member. Otherwise 404 \"Unknown project\", so non-members can't tell a project exists. Platform admins pass as project_admin.",
+      "Role: the membership role is at least the route's minimum (viewer < engineer < project_admin). Otherwise 403.",
+    ],
+    roles: [
+      ["bdt-user", "Keycloak realm role", "Default role for every login in the realm. Can sign in and see /api/me; sees no project until added to one."],
+      ["bdt-platform-admin", "Keycloak realm role", "Passes every project check as project_admin; sees all projects; lists all users; may remove a project's last admin."],
+      ["viewer", "Project role (BDT DB)", "View the project's data."],
+      ["engineer", "Project role (BDT DB)", "Viewer, plus run analysis and upload datasets (no such routes yet)."],
+      ["project_admin", "Project role (BDT DB)", "Engineer, plus delete datasets (no route yet) and manage the project's members. A project keeps at least one project admin."],
+    ],
+    routes: [
+      ["GET /api/health", "anyone (no token)", "—"],
+      ["GET /api/me", "any BDT user", "—"],
+      ["GET /api/projects", "any BDT user", "only the caller's projects (all for platform admins)"],
+      ["GET /api/projects/{key}", "viewer", "404 non-member"],
+      ["GET /api/projects/nasa-pcoe/batteries[/{id}[/soh]]", "viewer of nasa-pcoe", "404 non-member"],
+      ["GET /api/projects/vehicle-fleet/vehicles/*", "viewer of vehicle-fleet", "404 non-member"],
+      ["GET, POST /api/projects/{key}/members", "project_admin", "POST adds by email; the person must have signed in once (404), 409 if already a member"],
+      ["PUT, DELETE /api/projects/{key}/members/{user_id}", "project_admin", "409 if it would leave no project admin (platform admins exempt)"],
+      ["GET /api/admin/users", "bdt-platform-admin", "all users with their memberships"],
+    ],
+    grant: [
+      "The person signs in to the dashboard once. Keycloak gives them bdt-user and BDT creates their bdt_users row; they see \"no projects\".",
+      "A project admin opens #admin, picks the project, and adds them by email with a role.",
+      "They reload the dashboard and see that project's tab. Removing them or changing the role takes effect on their next request.",
+      "Platform admins are made in Keycloak, not in BDT: bdt-infra scripts/keycloak-bdt-authz.sh <email> grants bdt-platform-admin.",
+    ],
+    where: [
+      ["Identity, platform roles, bdt-api audience", "Keycloak realm bdt", "bdt-infra scripts/keycloak-bdt-authz.sh"],
+      ["Users, projects, memberships", "bdt_<env> on the shared postgres (tables bdt_users, projects, project_memberships)", "bdt backend/alembic (0001 seeds nasa-pcoe, vehicle-fleet)"],
+      ["Enforcement", "backend app/auth.py, app/permissions.py", "bdt"],
+      ["Member management UI", "dashboard #admin (frontend src/AdminView.tsx)", "bdt"],
+      ["Rollout", "dev only (components/bdt-db); qa/prod still on 8290b40 without it", "bdt-gitops"],
+    ],
+  },
   changelog: [
+    "2026-10-11: map: Access control tab (request checks, roles, who may call what, how access is given). AZ-204/AZ-205 checked live in dev with a non-admin account.",
     "2026-10-10: AZ-204 member management: /api/projects/{key}/members, /api/admin/users, dashboard Admin tab; live in dev (af47230).",
     "2026-10-10: authorization (AZ-101..AZ-203, AZ-205): bdt-api audience and platform roles in Keycloak, BDT databases on the shared postgres, project-scoped API routes, bdt-db Secret and migrate init container (dev). Live in dev (47f061a, migration 0001 applied to bdt_dev); qa/prod still on 8290b40.",
     "2026-10-09: first version. Phase 1 (NASA silver/gold, /api/batteries, NASA view) live in dev; secrets moved to Vault + External Secrets; read-only MinIO key for the dashboard.",
@@ -670,6 +727,29 @@ function buildTables() {
     const q = e.target.value.trim().toLowerCase();
     kb.querySelectorAll("tr").forEach(tr => tr.hidden = q && !tr.dataset.hay.includes(q));
   });
+
+  const A = MODEL.access;
+  const items = (sel, list) => list.forEach(t => { const li = document.createElement("li"); li.textContent = t; $(sel).append(li); });
+  items("#accessSteps", A.steps);
+  items("#grantSteps", A.grant);
+  const table = (sel, head, rows, codeCol) => {
+    const t = $(sel);
+    t.innerHTML = "<thead><tr>" + head.map(h => `<th>${h}</th>`).join("") + "</tr></thead>";
+    const b = document.createElement("tbody");
+    rows.forEach(r => {
+      const tr = document.createElement("tr");
+      r.forEach((v, i) => {
+        const td = document.createElement("td");
+        if (i === codeCol) { const c = document.createElement("code"); c.textContent = v; td.append(c); } else td.textContent = v;
+        tr.append(td);
+      });
+      b.append(tr);
+    });
+    t.append(b);
+  };
+  table("#roleTable", ["Role", "Kind", "May"], A.roles, 0);
+  table("#routeTable", ["Route", "Needs at least", "Notes"], A.routes, 0);
+  table("#accessWhere", ["What", "Where", "Repo / source"], A.where, -1);
 
   const log = $("#log");
   MODEL.changelog.forEach(c => { const li = document.createElement("li"); li.textContent = c; log.append(li); });

@@ -254,8 +254,8 @@ Decided (2026-10-10):
 Brief: [access control](docs/briefs/access-control.md). AZ-101 – AZ-104,
 AZ-201 – AZ-203 and AZ-205 are deployed to dev (47f061a, 2026-10-10);
 logged-in check done: the platform admin sees both projects and their
-data, and their bdt_users row was created on first login. AZ-205 stays
-open until a non-admin account is checked. qa/prod not promoted.
+data, and their bdt_users row was created on first login. Non-admin
+check done 2026-10-11 (see AZ-204). qa/prod not promoted.
 
 - [x] **AZ-101 API audience.** Add a `bdt-api` audience (client or
   mapper) in realm `bdt` so frontend tokens carry `aud: bdt-api`; turn
@@ -290,13 +290,15 @@ open until a non-admin account is checked. qa/prod not promoted.
 - [x] **AZ-203 Allowed/denied tests.** For each route and role, a test
   that the permitted role gets through, lower roles get 403 and
   non-members get 404, plus no membership, expired token, wrong issuer, wrong audience.
-- [~] **AZ-204 Membership management.** API for a project admin to add,
+- [x] **AZ-204 Membership management.** API for a project admin to add,
   change and remove members of their project; platform admin manages all
   projects.
   *API `/api/projects/{key}/members` (+ `/api/admin/users` for platform
   admins) and an Admin tab in the dashboard. Deployed to dev (af47230,
-  2026-10-10); check against the live API pending.*
-- [~] **AZ-205 Dashboard follows permissions.** Project switcher shows
+  2026-10-10). Checked live 2026-10-11: the platform admin added a second
+  account as viewer of NASA PCoE from the Admin tab; that account then saw
+  only the NASA tab and no Admin tab.*
+- [x] **AZ-205 Dashboard follows permissions.** Project switcher shows
   only the user's projects; actions the role doesn't allow are hidden.
   Usability only, the backend stays the security boundary.
 
