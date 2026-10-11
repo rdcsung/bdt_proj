@@ -139,8 +139,8 @@
       <code>secret/k8s/&lt;its namespace&gt;/*</code>. Values are never shown here.</p>
     <div class="tablewrap"><table id="secretTable"></table></div>
     <p class="note" style="margin-top:12px">Not in Vault on purpose: cert-manager TLS Secrets, Argo CD's own Secrets (incl. <code>gitops-repo-creds</code>),
-      chart-generated Secrets (e.g. <code>airflow-broker-url</code>), Vault's unseal key and root token, the MinIO root login (Ansible vault in bdt-infra),
-      and Airflow's <code>minio_s3</code> connection (Airflow DB; backlog PL-3).</p>
+      chart-generated Secrets (e.g. <code>airflow-broker-url</code>), Vault's unseal key and root token, and the MinIO root login (Ansible vault in bdt-infra).
+      Airflow keeps no connections in its DB: they come from Vault as <code>AIRFLOW_CONN_*</code> env vars.</p>
   </section>
 
   <section data-panel="access" hidden>
