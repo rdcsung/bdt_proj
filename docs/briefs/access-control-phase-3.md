@@ -1,6 +1,6 @@
 # Access control brief: authorization phase 3
 
-Backlog items: **AZ-301 – AZ-303** (section "Access control" in
+Backlog items: **AZ-301 – AZ-303**, follow-ups **AZ-304 – AZ-311** (section "Access control" in
 [`BACKLOG.md`](../../BACKLOG.md)); AZ-302 also closes **PL-3**. Builds on
 [phases 1–2](access-control.md). Read [`AGENTS.md`](../../AGENTS.md) first.
 

@@ -10,7 +10,7 @@ when** (checked only after verifying).
 | [Phase 1: NASA SOH data → dashboard](phase-1-soh-data.md) | BT-102 – BT-105 | ready, decisions D1–D3 agreed |
 | [Phase 2: SOH model, actual vs predicted](phase-2-soh-model.md) | BT-201 – BT-206 | ready after phase 1 |
 | [Access control: authorization phases 1–2](access-control.md) | AZ-101 – AZ-205 | done in dev; qa/prod pending |
-| [Access control: authorization phase 3](access-control-phase-3.md) | AZ-301 – AZ-303, PL-3 | AZ-301 done in dev; AZ-302 and PL-3 done; AZ-303 next |
+| [Access control: authorization phase 3](access-control-phase-3.md) | AZ-301 – AZ-303, PL-3 | AZ-301 done in dev; AZ-302 and PL-3 done; AZ-303 inventory in review, follow-ups AZ-304 – AZ-311 open |
 | Phase 3: RUL and degradation forecast | BT-301 – BT-305 | to write |
 | Phase 4: Anomaly detection | BT-401 – BT-403 | to write |
 | Phase 5: Explainable SOH | BT-501 – BT-503 | to write |
