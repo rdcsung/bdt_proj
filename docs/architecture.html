@@ -185,7 +185,7 @@
    edges: from, to, type (see EDGE_TYPES), label, kv (optional).
    =================================================================== */
 const MODEL = {
-  updated: "2026-11-08",
+  updated: "2026-11-25",
   lanes: [
     { id: "outside",  title: "Outside" },
     { id: "repos",    title: "Repositories" },
@@ -227,7 +227,7 @@ const MODEL = {
       src: "github.com/rdcsung/bdt-gitops" },
     { id: "r_infra", lane: "repos", label: "bdt-infra", sub: "Ansible + runbooks", kind: "Repository",
       desc: "Owns the cluster's existence: Ubuntu, k3s, Argo CD bootstrap, MinIO (Silo) on odin; the full rebuild runbook; Vault/ESO and MinIO scripts.",
-      kv: { "Playbooks": "site, server, agent, argocd, minio", "Scripts": "vault-eso-setup.sh, setup-nasa-gold-key.sh, setup-pipeline-keys.sh", "Docs": "minio.md, vault-secrets.md, service-accounts.md (every workload credential: user, rights, where kept)" },
+      kv: { "Playbooks": "site, server, agent, argocd, minio", "Scripts": "vault-eso-setup.sh, setup-nasa-gold-key.sh, setup-pipeline-keys.sh, odin-pre-reboot.sh / odin-post-reboot.sh (upgrade + reboot odin, then unseal Vault and check everything is back)", "Docs": "minio.md, vault-secrets.md, service-accounts.md (every workload credential: user, rights, where kept)" },
       src: "github.com/rdcsung/bdt-infra" },
     { id: "r_proj", lane: "repos", label: "bdt_proj", sub: "backlog, briefs, rules", kind: "Repository",
       desc: "Project backlog, phase briefs, agent rules (AGENTS.md), data dictionary and this map. No code.",
@@ -469,6 +469,7 @@ const MODEL = {
     ],
   },
   changelog: [
+    "2026-11-25: bdt-infra scripts odin-pre-reboot.sh and odin-post-reboot.sh (snapshot, upgrade, reboot; then Vault unseal, ESO re-sync, pod/Argo/endpoint checks). T3 Code and its Cloudflare tunnel removed from odin.",
     "2026-11-08: new repo bdt-streamlit (private): Streamlit frontend for the bdt API, run locally; Keycloak client bdt-streamlit to be created by its scripts/keycloak-streamlit-client.sh.",
     "2026-10-11: AZ-303: credential inventory in bdt-infra docs/service-accounts.md; follow-ups AZ-304 – AZ-311 in the backlog.",
     "2026-10-11: AZ-302/PL-3: one MinIO key per DAG (nasa-ingest, nasa-transform), connections from Vault as AIRFLOW_CONN_* env; old airflow key, bdt-lake-rw and minio_s3 removed.",
