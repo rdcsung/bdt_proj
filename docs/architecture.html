@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>BDT Platform Map</title>
-<meta name="description" content="Interactive map of the Battery Digital Twin platform: infrastructure components, how they connect, their key settings, and how the five repositories relate.">
+<meta name="description" content="Interactive map of the Battery Digital Twin platform: infrastructure components, how they connect, their key settings, and how the repositories relate.">
 <style>
   /* Keep this page current: see "How to update" at the bottom of the
      script and the rule in AGENTS.md. Facts live in MODEL below. */
@@ -101,7 +101,7 @@
   <header>
     <div>
       <h1>BDT platform map</h1>
-      <div class="sub">Battery Digital Twin: infrastructure components, how they connect, their key settings, and the five repositories.</div>
+      <div class="sub">Battery Digital Twin: infrastructure components, how they connect, their key settings, and the repositories.</div>
     </div>
     <div class="meta" id="meta"></div>
   </header>
@@ -185,7 +185,7 @@
    edges: from, to, type (see EDGE_TYPES), label, kv (optional).
    =================================================================== */
 const MODEL = {
-  updated: "2026-10-11",
+  updated: "2026-11-08",
   lanes: [
     { id: "outside",  title: "Outside" },
     { id: "repos",    title: "Repositories" },
@@ -209,7 +209,7 @@ const MODEL = {
       kv: { "URL": "https://phm-datasets.s3.amazonaws.com/NASA/5.+Battery+Data+Set.zip", "Size": "≈200 MB", "Batteries": "34", "Rated capacity": "2.0 Ah" },
       src: "bdt_pipeline README" },
     { id: "github", lane: "outside", label: "GitHub", sub: "github.com/rdcsung", kind: "External service",
-      desc: "Hosts the five repositories and runs CI (cloud runners for tests, the self-hosted homelab runner for image builds).",
+      desc: "Hosts the BDT repositories and runs CI (cloud runners for tests, the self-hosted homelab runner for image builds).",
       kv: { "Account": "rdcsung", "Repos": "bdt, bdt_pipeline, bdt-gitops, bdt-infra, bdt_proj" } },
 
     // ---- repositories
@@ -233,6 +233,10 @@ const MODEL = {
       desc: "Project backlog, phase briefs, agent rules (AGENTS.md), data dictionary and this map. No code.",
       kv: { "Files": "BACKLOG.md, AGENTS.md, CLAUDE.md, docs/briefs/*, docs/data-dictionary.md, docs/architecture.html" },
       src: "github.com/rdcsung/bdt_proj" },
+    { id: "r_streamlit", lane: "repos", label: "bdt-streamlit", sub: "Streamlit frontend (learning)", kind: "Repository",
+      desc: "Second dashboard frontend in Streamlit: same four tabs as bdt's React app, calling the same bdt API with the user's Keycloak access token. Run locally; not deployed to the cluster.",
+      kv: { "Branch": "main (private)", "Stack": "Python 3.12, uv, Streamlit 1.67 (st.login OIDC), httpx, Altair", "Tests": "pytest incl. streamlit.testing AppTest", "Workflows": "test.yml", "Keycloak client": "bdt-streamlit (confidential), made by scripts/keycloak-streamlit-client.sh; not yet created in the cluster", "API": "BDT_API_URL, default https://battery-dev.k3s.home/api" },
+      src: "github.com/rdcsung/bdt-streamlit" },
 
     // ---- delivery
     { id: "gha", lane: "delivery", label: "GitHub Actions", sub: "CI + self-hosted runner", kind: "CI/CD",
@@ -372,6 +376,8 @@ const MODEL = {
     { from: "keycloak", to: "google", type: "auth", label: "identity provider" },
     { from: "frontend", to: "keycloak", type: "auth", label: "keycloak-js, client bdt-frontend" },
     { from: "backend", to: "keycloak", type: "auth", label: "JWKS, verify RS256 tokens" },
+    { from: "r_streamlit", to: "keycloak", type: "auth", label: "st.login, client bdt-streamlit (pending setup script)" },
+    { from: "r_streamlit", to: "backend", type: "net", label: "server-side /api calls, user's bearer token (run locally)" },
     // hosts
     { from: "odin", to: "minio", type: "host", label: "runs (systemd silo)" },
     { from: "odin", to: "vault", type: "host", label: "pinned (PVC)" },
@@ -393,6 +399,8 @@ const MODEL = {
       deliveredBy: "ansible-playbook from thor; scripts run by hand on odin", feeds: "odin, thor, loki; Argo CD install", readsFrom: "Ansible vault (k3s token, MinIO root)" },
     { repo: "bdt_proj", owns: "Backlog, phase briefs, agent rules (AGENTS.md), data dictionary, this map",
       deliveredBy: "read by people and agents", feeds: "how work is done in the other four", readsFrom: "facts from all four repos + the cluster" },
+    { repo: "bdt-streamlit", owns: "Learning project: Streamlit frontend for the bdt API (fleet, NASA, admin, account tabs); Keycloak client setup script",
+      deliveredBy: "run by hand (make run); no image, not deployed", feeds: "nothing in the cluster", readsFrom: "bdt API (dev by default), Keycloak realm bdt" },
   ],
   secrets: [
     ["airflow", "airflow-api-secret-key", "api-secret-key", "Airflow api-server"],
@@ -461,6 +469,7 @@ const MODEL = {
     ],
   },
   changelog: [
+    "2026-11-08: new repo bdt-streamlit (private): Streamlit frontend for the bdt API, run locally; Keycloak client bdt-streamlit to be created by its scripts/keycloak-streamlit-client.sh.",
     "2026-10-11: AZ-303: credential inventory in bdt-infra docs/service-accounts.md; follow-ups AZ-304 – AZ-311 in the backlog.",
     "2026-10-11: AZ-302/PL-3: one MinIO key per DAG (nasa-ingest, nasa-transform), connections from Vault as AIRFLOW_CONN_* env; old airflow key, bdt-lake-rw and minio_s3 removed.",
     "2026-10-11: AZ-301 audit log: append-only audit_events table (migration 0002, trigger), /api/projects/{key}/audit and /api/admin/audit, Activity section in #admin; live in dev (f6fd31a).",
